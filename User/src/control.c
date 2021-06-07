@@ -72,6 +72,11 @@ float g_fGravityAngle;			//
 
 int g_iLeftTurnRoundCnt = 0;
 int g_iRightTurnRoundCnt = 0;
+<<<<<<< HEAD
+=======
+int g_iDestinationRelatedDirection = 0;	// 相对于终点的方向：-1表示当前正在向左走  0表示当前正在直行    1表示当前正在向右走
+int g_iWallRelatedPosition = 0;			// 相对于墙的位置：  -1表示在左边墙向前走  1表示在右边墙向前走  0表示其他情况
+>>>>>>> 1c47d39ce1f922a03885a9a8ce326c1dc3e8d88e
 
 static int AbnormalSpinFlag = 0;
 /***************************************************************
@@ -548,22 +553,23 @@ void TailingControl(void)
 
 	result = InfraredDetect();
 	
-	if(result & infrared_channel_Lc)
-		direct = -10;
-	else if(result & infrared_channel_Lb)
-		direct = -6;
-	else if(result & infrared_channel_La)
+	// if(result & infrared_channel_Lc)
+	// 	direct = -10;
+	// else if(result & infrared_channel_Lb)
+	// 	direct = -6;
+	if(result & infrared_channel_La)
 		direct = -4;
-	else if(result & infrared_channel_Rc)
-		direct = 10;
-	else if(result & infrared_channel_Rb)
-		direct = 6;
-	else if(result & infrared_channel_Ra)
+	// else if(result & infrared_channel_Rc)
+	// 	direct = 10;
+	// else if(result & infrared_channel_Rb)
+	// 	direct = 6;
+	if(result & infrared_channel_Ra)
 		direct = 4;
-	else
+	if (result == 0)
 		direct = 0.0;
 
-	speed = 3;
+	if (direct == 0) speed = 1;
+	speed = 2;
 
 	Steer(direct, speed);
 
