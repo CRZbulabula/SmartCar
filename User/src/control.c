@@ -571,7 +571,7 @@ void UltraControl(int mode)
 			// #endif
 			if(g_iDestinationRelatedDirection == 0)			// 当前相对终点正在直行
 			{
-				if (g_iWallRelatedPosition == 0 || g_iWallRelatedPosition == 1)
+				if (g_iWallRelatedPosition == 0 || g_iWallRelatedPosition == -1)
 				{
 					//右转750个脉冲计数，转弯角度约为90度(默认也是右转)
 					Steer(5, 0);
@@ -601,50 +601,48 @@ void UltraControl(int mode)
 				g_iRightTurnRoundCnt = 750;
 			}
 		}
+		
 		// 转弯完成
-		if(g_iDestinationRelatedDirection == 0)
+		// 直走通过右转变为向右走
+		if (g_iLeftTurnRoundCnt < 0 && g_iRightTurnRoundCnt > 0 && g_iDestinationRelatedDirection == 0 && (g_iWallRelatedPosition == 0 || g_iWallRelatedPosition == -1))
 		{
-			if ((g_iWallRelatedPosition == 0 || g_iWallRelatedPosition == 1) && g_iLeftTurnRoundCnt < 0 && g_iRightTurnRoundCnt > 0)
-			{
-				// #if INFRARE_DEBUG_EN > 0
-				// sprintf(buff, "44444\n");
-				// DebugOutStr(buff);
-				// #endif
-				// 直走通过右转变为向右走
-				g_iDestinationRelatedDirection = 1;
-				g_iWallRelatedPosition = 0;
-				Steer(0, 4);
-			}
-			else if (g_iDestinationRelatedDirection == -1 && g_iLeftTurnRoundCnt > 0 && g_iRightTurnRoundCnt < 0)
-			{
-				// #if INFRARE_DEBUG_EN > 0
-				// sprintf(buff, "44444\n");
-				// DebugOutStr(buff);
-				// #endif
-				// 直走通过左转变为向左走
-				g_iDestinationRelatedDirection = -1;
-				g_iWallRelatedPosition = 0;
-				Steer(0, 4);
-			}
+			// #if INFRARE_DEBUG_EN > 0
+			// sprintf(buff, "44444\n");
+			// DebugOutStr(buff);
+			// #endif
+			g_iDestinationRelatedDirection = 1;
+			g_iWallRelatedPosition = 0;
+			Steer(0, 4);
 		}
-		else if(g_iDestinationRelatedDirection == -1 && g_iLeftTurnRoundCnt < 0 && g_iRightTurnRoundCnt > 0)
+		// 直走通过左转变为向左走
+		else if (g_iLeftTurnRoundCnt > 0 && g_iRightTurnRoundCnt < 0 && g_iDestinationRelatedDirection == 0 && g_iWallRelatedPosition == 1)
+		{
+			// #if INFRARE_DEBUG_EN > 0
+			// sprintf(buff, "44444\n");
+			// DebugOutStr(buff);
+			// #endif
+			g_iDestinationRelatedDirection = -1;
+			g_iWallRelatedPosition = 0;
+			Steer(0, 4);
+		}
+		// 向左走通过右转恢复成直走 靠墙的左边
+		else if(g_iLeftTurnRoundCnt < 0 && g_iRightTurnRoundCnt > 0 && g_iDestinationRelatedDirection == -1 )
 		{
 			// #if INFRARE_DEBUG_EN > 0
 			// 	sprintf(buff, "44444\n");
 			// 	DebugOutStr(buff);
 			// 	#endif
-			// 向左走通过右转恢复成直走 靠墙的左边
 			g_iDestinationRelatedDirection = 0;
 			g_iWallRelatedPosition = -1;
 			Steer(0, 4);
 		}
-		else if(g_iDestinationRelatedDirection == 1 && g_iLeftTurnRoundCnt > 0 && g_iRightTurnRoundCnt < 0)
+		// 向右走通过左转恢复成直走 靠墙的右边
+		else if(g_iLeftTurnRoundCnt > 0 && g_iRightTurnRoundCnt < 0 && g_iDestinationRelatedDirection == 1)
 		{
 			// #if INFRARE_DEBUG_EN > 0
 			// 	sprintf(buff, "44444\n");
 			// 	DebugOutStr(buff);
 			// 	#endif
-			// 向右走通过左转恢复成直走 靠墙的右边
 			g_iDestinationRelatedDirection = 0;
 			g_iWallRelatedPosition = 1;
 			Steer(0, 4);
