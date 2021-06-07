@@ -17,7 +17,7 @@
 
 void ShowHomePageInit(void);
 void ShowHomePage(void);
-
+void ShowStr(void);
 
 #endif
 
