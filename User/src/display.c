@@ -82,8 +82,4 @@ void ShowHomePage(void)
 		}
 }
 
-void ShowStr(void buff) {
-	OLED_ShowString(0, 3, (char*) buff);
-}
-
 

@@ -62,23 +62,15 @@ int main(void)
 		g_iGravity_Offset = 1; //若果检测到悬挂红外模块，则更改偏移值。
 	
 	ShowHomePageInit();
+	
+	SoftTimer[3] = 2000;
+	while(SoftTimer[3]) {}
+	Steer(0, 2);
  
 	while (1)
 	{
-		SoftTimer[3] = 2000;
-		while (SoftTimer[3] > 0) {}
-		g_iMoveCnt = 500;
-		Steer(0, 4);
-		while (g_iMoveCnt > 0) {}
-		SoftTimer[3] = 2000;
-		while (SoftTimer[3] > 0) {}
-		g_iMoveCnt = -500;
-		Steer(0, -4);
-		while (g_iMoveCnt < 0) {}
-		SoftTimer[3] = 2000;
-		while (SoftTimer[3] > 0) {}
-
-		/*SecTask();			//秒级任务
+		
+		SecTask();			//秒级任务
 
 		if(SoftTimer[1] == 0)
 		{// 每隔20ms 执行一次
@@ -87,10 +79,10 @@ int main(void)
 			DebugService();			
 			Parse(Uart3Buffer);
 		}
-  	
+   	
 		if(SoftTimer[2] == 0)
 		{
-			SoftTimer[2] = 10;	// todo: to be modified
+			SoftTimer[2] = 100;	// todo: to be modified
 			
 			ShowHomePage();
 	
@@ -112,7 +104,7 @@ int main(void)
 			else if(g_CarRunningMode == INFRARED_TRACE_MODE){
 				TailingControl();
 			}
-		}*/
+		}	
 	}
 }
 

@@ -26,7 +26,7 @@ unsigned short  g_RunTime = 0;
 unsigned short  g_BatVolt=0;
 
 //С������ģʽ:ң��ģʽ������Ѱ��ģʽ�����������ϡ�����������ģʽ
-unsigned char g_CarRunningMode = CONTROL_MODE;//Ĭ��Ϊң��ģʽ
+unsigned char g_CarRunningMode = ULTRA_AVOID_MODE;//Ĭ��Ϊң��ģʽ
 
 //���¶�����manage.h��
 //#define CONTROL_MODE 			1   ң��ģʽ
