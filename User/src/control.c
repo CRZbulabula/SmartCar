@@ -49,6 +49,7 @@ int  g_s32LeftMotorPulseOld;
 int  g_s32RightMotorPulseOld;
 int  g_s32LeftMotorPulseSigma;
 int  g_s32RightMotorPulseSigma;
+int  g_s32MotorPulseDelta;
 
 float g_fCarSpeed;
 float g_iCarSpeedSet;
@@ -69,9 +70,13 @@ float g_fCarAngle;         	//
 float g_fGyroAngleSpeed;		//     			
 float g_fGravityAngle;			//
 
+// 直行计数
+int g_iMoveCnt = 0;
 
+// 转弯计数
 int g_iLeftTurnRoundCnt = 0;
 int g_iRightTurnRoundCnt = 0;
+
 int g_iDestinationRelatedDirection = 0;	// 相对于终点的方向：-1表示当前正在向左走  0表示当前正在直行    1表示当前正在向右走
 int g_iWallRelatedPosition = 0;			// 相对于墙的位置：  -1表示在左边墙向前走  1表示在右边墙向前走  0表示其他情况
 
@@ -302,6 +307,13 @@ void MotorOutput(void)
 	g_fLeftMotorOut  = g_fAngleControlOut - g_fSpeedControlOut - g_fBluetoothDirection ;	//这里的电机输出等于角度环控制量 + 速度环外环,这里的 - g_fSpeedControlOut 是因为速度环的极性跟角度环不一样，角度环是负反馈，速度环是正反馈
 	g_fRightMotorOut = g_fAngleControlOut - g_fSpeedControlOut + g_fBluetoothDirection ;
 
+	if (SPEED_FORCE_EQUAL) {
+		if (g_s32MotorPulseDelta > 0) {
+			g_fRightMotorOut += 0.2 * g_s32MotorPulseDelta;
+		} else {
+			g_fLeftMotorOut += 0.2 * g_s32MotorPulseDelta;
+		}
+	}
 
 	/*增加死区常数*/
 	if((int)g_fLeftMotorOut>0)       g_fLeftMotorOut  += MOTOR_OUT_DEAD_VAL;
@@ -329,7 +341,9 @@ void GetMotorPulse(void)  //采集电机速度脉冲
 
   g_s32LeftMotorPulseSigma +=  g_s16LeftMotorPulse;
   g_s32RightMotorPulseSigma += g_s16RightMotorPulse; 
+  g_s32MotorPulseDelta = g_s16LeftMotorPulse - g_s16RightMotorPulse;
 	
+	g_iMoveCnt -= (g_s16LeftMotorPulse + g_s16RightMotorPulse) * 0.5;
 	g_iLeftTurnRoundCnt -= g_s16LeftMotorPulse;
 	g_iRightTurnRoundCnt -= g_s16RightMotorPulse;
 
@@ -537,30 +551,30 @@ void UltraControl(int mode)
 				{
 					//右转750个脉冲计数，转弯角度约为90度(默认也是右转)
 					Steer(5, 0);
-					g_iLeftTurnRoundCnt = 750;
-					g_iRightTurnRoundCnt = -750;
+					g_iLeftTurnRoundCnt = TURN_CNT;
+					g_iRightTurnRoundCnt = -TURN_CNT;
 				}
 				else
 				{
 					// 左转750个脉冲计数，转弯角度约为90度
 					Steer(-5, 0);
-					g_iLeftTurnRoundCnt = -750;
-					g_iRightTurnRoundCnt = 750;
+					g_iLeftTurnRoundCnt = -TURN_CNT;
+					g_iRightTurnRoundCnt = TURN_CNT;
 				}
 			}
 			else if(g_iDestinationRelatedDirection == -1)	// 当前相对终点正在向左走，并且即将撞墙
 			{
 				//右转750个脉冲计数，转弯角度约为90度
 				Steer(5, 0);
-				g_iLeftTurnRoundCnt = 750;
-				g_iRightTurnRoundCnt = -750;
+				g_iLeftTurnRoundCnt = TURN_CNT;
+				g_iRightTurnRoundCnt = -TURN_CNT;
 			}
 			else											// 当前相对终点正在向右走，并且即将撞墙
 			{
 				// 左转750个脉冲计数，转弯角度约为90度
 				Steer(-5, 0);
-				g_iLeftTurnRoundCnt = -750;
-				g_iRightTurnRoundCnt = 750;
+				g_iLeftTurnRoundCnt = -TURN_CNT;
+				g_iRightTurnRoundCnt = TURN_CNT;
 			}
 		}
 		
@@ -656,8 +670,8 @@ void TailingControl(void)
 	Steer(direct, speed);
 
 #if INFRARE_DEBUG_EN > 0
-	sprintf(buff, "Steer:%d, Speed:%d\r\n",(int)direct,  (int)speed);
-	DebugOutStr(buff);
+	//sprintf(buff, "Steer:%d, Speed:%d\r\n",(int)direct,  (int)speed);
+	//DebugOutStr(buff);
 #endif
 }
 

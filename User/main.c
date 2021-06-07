@@ -49,6 +49,7 @@ int main(void)
 {	
 	#if INFRARE_DEBUG_EN > 0
 	char buff[32];	
+	memset(buff, 0, sizeof(buff));
 	#endif
 	
 	BspInit();				//初始化BSP
@@ -64,8 +65,35 @@ int main(void)
 	
 	ShowHomePageInit();
  
+	SoftTimer[3] = 2000;
+	while (SoftTimer[3] > 0) {}
+	Steer(0, 2);
+
 	while (1)
 	{
+		
+		/*SoftTimer[3] = 2000;
+		while (SoftTimer[3] > 0) {}
+		sprintf(buff, "forward\n\0");
+		DebugOutStr(buff);
+		g_iMoveCnt = 6000;
+		Steer(0, 2);
+		while (g_iMoveCnt > 0) {}
+		Steer(0, 0);
+		SoftTimer[3] = 2000;
+		while (SoftTimer[3] > 0) {}
+		sprintf(buff, "backward\n\0");
+		DebugOutStr(buff);
+		g_iMoveCnt = -6000;
+		Steer(0, -2);
+		while (g_iMoveCnt > 0) {
+			SoftTimer[4] = 500;
+			while (SoftTimer[4] > 0) {}
+				
+		}
+		Steer(0, 0);
+		SoftTimer[3] = 2000;
+		while (SoftTimer[3] > 0) {}*/
 		
 		SecTask();			//秒级任务
 
@@ -74,7 +102,7 @@ int main(void)
 			SoftTimer[1] = 20;
 			ResponseIMU();			
 			DebugService();			
-			Parse(Uart3Buffer);
+			//Parse(Uart3Buffer);
 		}
   	
 		if(SoftTimer[2] == 0)
@@ -91,17 +119,19 @@ int main(void)
 			if(g_CarRunningMode == ULTRA_AVOID_MODE){
 				if(IsUltraOK())
 				{
-					#if INFRARE_DEBUG_EN > 0
-					sprintf(buff, "11111\n");
-					DebugOutStr(buff);
-					#endif
 					UltraControl(1);	//超声波避障模式
 				}
 	 		}
 			else if(g_CarRunningMode == INFRARED_TRACE_MODE){
 				TailingControl();
 			}
-		}	
+		}
+
+		if (SoftTimer[3] == 0) {
+			SoftTimer[3] = 500;
+			sprintf(buff, "%d %d\n\0", g_iLeftTurnRoundCnt, g_iRightTurnRoundCnt);
+			DebugOutStr(buff);
+		}
 	}
 }
 
