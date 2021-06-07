@@ -675,23 +675,18 @@ void TailingControl(void)
 
 	result = InfraredDetect();
 	
-	// if(result & infrared_channel_Lc)
-	// 	direct = -10;
-	// else if(result & infrared_channel_Lb)
-	// 	direct = -6;
+	// Lb and Rb is not available
+	if(result & infrared_channel_Lc)
+		direct -= 6;
 	if(result & infrared_channel_La)
-		direct = -4;
-	// else if(result & infrared_channel_Rc)
-	// 	direct = 10;
-	// else if(result & infrared_channel_Rb)
-	// 	direct = 6;
+		direct -= 4;
 	if(result & infrared_channel_Ra)
-		direct = 4;
-	if (result == 0)
-		direct = 0.0;
+		direct += 4;
+	if (result & infrared_channel_Rc)
+		direct += 6;
 
 	if (direct == 0) speed = 1;
-	speed = 2;
+	else speed = 2;
 
 	Steer(direct, speed);
 
