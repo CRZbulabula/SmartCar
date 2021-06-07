@@ -65,20 +65,8 @@ int main(void)
  
 	while (1)
 	{
-		SoftTimer[3] = 2000;
-		while (SoftTimer[3] > 0) {}
-		g_iMoveCnt = 500;
-		Steer(0, 4);
-		while (g_iMoveCnt > 0) {}
-		SoftTimer[3] = 2000;
-		while (SoftTimer[3] > 0) {}
-		g_iMoveCnt = -500;
-		Steer(0, -4);
-		while (g_iMoveCnt < 0) {}
-		SoftTimer[3] = 2000;
-		while (SoftTimer[3] > 0) {}
-
-		/*SecTask();			//秒级任务
+		
+		SecTask();			//秒级任务
 
 		if(SoftTimer[1] == 0)
 		{// 每隔20ms 执行一次
@@ -112,7 +100,7 @@ int main(void)
 			else if(g_CarRunningMode == INFRARED_TRACE_MODE){
 				TailingControl();
 			}
-		}*/
+		}	
 	}
 }
 

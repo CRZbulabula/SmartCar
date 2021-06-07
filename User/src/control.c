@@ -20,6 +20,7 @@
 #include "ultrasonic.h"
 #include "infrare.h"
 
+
 unsigned char g_u8MainEventCount;
 unsigned char g_u8SpeedControlCount;
 unsigned char g_u8SpeedControlPeriod;
@@ -32,20 +33,14 @@ unsigned char g_cMotorDisable = 0;//值等于0时电机正常转动，否则停止转动
 int g_iGravity_Offset = 0;
 
 /******电机控制参数******/
+float g_fSpeedControlOut;
+float g_fSpeedControlOutOld;
+float g_fSpeedControlOutNew;
 float g_fAngleControlOut;
 float g_fLeftMotorOut;
 float g_fRightMotorOut;
 
-// 左右轮分开调节
-float g_fLeftSpeedControlOut, g_fLeftSpeedControlOutNew, g_fLeftSpeedControlOutOld;
-float g_fRightSpeedControlOut, g_fRightSpeedControlOutNew, g_fRightSpeedControlOutOld;
-
-
 /******速度控制参数******/
-#define MOVE_START_SPEED 50 // 启动车速
-#define MOVE_MAX_SPEED 30   // 行进车速最大值
-
-int MOVE_CONTROL = 0;
 
 short  g_s16LeftMotorPulse;
 short  g_s16RightMotorPulse;
@@ -55,11 +50,10 @@ int  g_s32RightMotorPulseOld;
 int  g_s32LeftMotorPulseSigma;
 int  g_s32RightMotorPulseSigma;
 
-// 左右轮分开控制
-float g_iCarLeftSpeedSet, g_iCarRightSpeedSet; // 左右轮期望速度
-float g_fCarLeftSpeed, g_fCarRightSpeed;
-float g_fCarLeftSpeedOld, g_fCarRightSpeedOld;
-float g_fCarLeftPosition, g_fCarRightPosition;
+float g_fCarSpeed;
+float g_iCarSpeedSet;
+float g_fCarSpeedOld;
+float g_fCarPosition;
 
 /*-----角度环和速度环PID控制参数-----*/
 PID_t g_tCarAnglePID={17.0, 0, 23.0};	//*5 /10
@@ -75,18 +69,13 @@ float g_fCarAngle;         	//
 float g_fGyroAngleSpeed;		//     			
 float g_fGravityAngle;			//
 
-// 直行计数
-int g_iMoveCnt = 0;
 
-// 转弯计数
 int g_iLeftTurnRoundCnt = 0;
 int g_iRightTurnRoundCnt = 0;
-
 int g_iDestinationRelatedDirection = 0;	// 相对于终点的方向：-1表示当前正在向左走  0表示当前正在直行    1表示当前正在向右走
 int g_iWallRelatedPosition = 0;			// 相对于墙的位置：  -1表示在左边墙向前走  1表示在右边墙向前走  0表示其他情况
 
 static int AbnormalSpinFlag = 0;
-
 /***************************************************************
 ** 函数名称: CarUpstandInit
 ** 功能描述: 全局变量初始化函数
@@ -104,21 +93,20 @@ void CarUpstandInit(void)
 	g_s32LeftMotorPulseOld = g_s32RightMotorPulseOld = 0;
 	g_s32LeftMotorPulseSigma = g_s32RightMotorPulseSigma = 0;
 
-	g_fCarLeftSpeed = g_fCarRightSpeed = 0;
-	g_fCarLeftPosition = g_fCarRightPosition = 0;
-	g_fCarAngle = 0;
+	g_fCarSpeed = g_fCarSpeedOld = 0;
+	g_fCarPosition = 0;
+	g_fCarAngle    = 0;
 	g_fGyroAngleSpeed = 0;
-	g_fGravityAngle = 0;
+	g_fGravityAngle   = 0;
 
-	g_fLeftSpeedControlOut = g_fRightSpeedControlOut = 0;
-	g_fAngleControlOut = g_fBluetoothDirectionOut = 0;
-	g_fLeftMotorOut = g_fRightMotorOut   = 0;
-	g_fBluetoothSpeed = g_fBluetoothDirection = 0;
+	g_fAngleControlOut = g_fSpeedControlOut = g_fBluetoothDirectionOut = 0;
+	g_fLeftMotorOut    = g_fRightMotorOut   = 0;
+	g_fBluetoothSpeed  = g_fBluetoothDirection = 0;
 	g_fBluetoothDirectionNew = g_fBluetoothDirectionOld = 0;
 
-	g_u8MainEventCount = 0;
-	g_u8SpeedControlCount = 0;
-	g_u8SpeedControlPeriod = 0;
+  g_u8MainEventCount=0;
+	g_u8SpeedControlCount=0;
+ 	g_u8SpeedControlPeriod=0;
 }
 
 
@@ -137,7 +125,7 @@ void AbnormalSpinDetect(short leftSpeed,short rightSpeed)
 	static unsigned short count = 0;
 	
 	//速度设置为0时检测，否则不检测
-	if(g_iCarLeftSpeedSet == 0 && g_iCarRightSpeedSet == 0)
+	if(g_iCarSpeedSet==0)
 	{
 		if(((leftSpeed>30)&&(rightSpeed>30)&&(g_fCarAngle > -30) && (g_fCarAngle < 30))
 			||((leftSpeed<-30)&&(rightSpeed<-30))&&(g_fCarAngle > -30) && (g_fCarAngle < 30))
@@ -186,7 +174,7 @@ void LandingDetect(void)
 				if(count >= 4){
 					count = 0;
 					count1 = 0;
-					g_fCarLeftPosition = g_fCarRightPosition = 0;
+					g_fCarPosition = 0;
 					AbnormalSpinFlag = 0;
 				}
 			}
@@ -311,10 +299,8 @@ void SetMotorVoltageAndDirection(int i16LeftVoltage,int i16RightVoltage)
 ***************************************************************/
 void MotorOutput(void)
 {
-	// 这里的电机输出等于角度环控制量 + 速度环外环,这里的 - g_fSpeedControlOut 
-	// 是因为速度环的极性跟角度环不一样，角度环是负反馈，速度环是正反馈
-	g_fLeftMotorOut  = g_fAngleControlOut - g_fLeftSpeedControlOut - g_fBluetoothDirection ;	
-	g_fRightMotorOut = g_fAngleControlOut - g_fRightSpeedControlOut + g_fBluetoothDirection ;
+	g_fLeftMotorOut  = g_fAngleControlOut - g_fSpeedControlOut - g_fBluetoothDirection ;	//这里的电机输出等于角度环控制量 + 速度环外环,这里的 - g_fSpeedControlOut 是因为速度环的极性跟角度环不一样，角度环是负反馈，速度环是正反馈
+	g_fRightMotorOut = g_fAngleControlOut - g_fSpeedControlOut + g_fBluetoothDirection ;
 
 
 	/*增加死区常数*/
@@ -329,22 +315,24 @@ void MotorOutput(void)
 	if((int)g_fRightMotorOut > MOTOR_OUT_MAX)	g_fRightMotorOut = MOTOR_OUT_MAX;
 	if((int)g_fRightMotorOut < MOTOR_OUT_MIN)	g_fRightMotorOut = MOTOR_OUT_MIN;
 	
-    SetMotorVoltageAndDirection((int)g_fLeftMotorOut, (int)g_fRightMotorOut);
+    SetMotorVoltageAndDirection((int)g_fLeftMotorOut,(int)g_fRightMotorOut);
 }
+
+
 
 void GetMotorPulse(void)  //采集电机速度脉冲
 { 	
-	g_s16LeftMotorPulse = TIM_GetCounter(TIM2);     
-	g_s16RightMotorPulse = -TIM_GetCounter(TIM4);
-	TIM2->CNT = 0;
-	TIM4->CNT = 0;   //清零
+  g_s16LeftMotorPulse = TIM_GetCounter(TIM2);     
+  g_s16RightMotorPulse= -TIM_GetCounter(TIM4);
+  TIM2->CNT = 0;
+  TIM4->CNT = 0;   //清零
 
-	g_s32LeftMotorPulseSigma +=  g_s16LeftMotorPulse;
-	g_s32RightMotorPulseSigma += g_s16RightMotorPulse; 
+  g_s32LeftMotorPulseSigma +=  g_s16LeftMotorPulse;
+  g_s32RightMotorPulseSigma += g_s16RightMotorPulse; 
 	
-	g_iMoveCnt -= (g_s16LeftMotorPulse + g_s16RightMotorPulse) * 0.5;
 	g_iLeftTurnRoundCnt -= g_s16LeftMotorPulse;
 	g_iRightTurnRoundCnt -= g_s16RightMotorPulse;
+
 }
 
 /***************************************************************
@@ -363,8 +351,8 @@ void AngleCalculate(void)
 {
 	//-------加速度--------------------------
 	//量程为±2g时，灵敏度：16384 LSB/g
-	g_fGravityAngle = atan2(g_fAccel_y/16384.0,g_fAccel_z/16384.0) * 180.0 / 3.14;
-	g_fGravityAngle = g_fGravityAngle - g_iGravity_Offset;
+    g_fGravityAngle = atan2(g_fAccel_y/16384.0,g_fAccel_z/16384.0) * 180.0 / 3.14;
+	  g_fGravityAngle = g_fGravityAngle - g_iGravity_Offset;
 
 	//-------角速度-------------------------
 	//范围为2000deg/s时，换算关系：16.4 LSB/(deg/s)
@@ -373,9 +361,6 @@ void AngleCalculate(void)
 	
 	//-------互补滤波---------------
 	g_fCarAngle = 0.98 * (g_fCarAngle + g_fGyroAngleSpeed * 0.005) + 0.02 *	g_fGravityAngle;
-
-	// 机械零点
-	//g_fCarAngle = g_fCarAngle - CAR_ZERO_ANGLE;
 }
 /***************************************************************
 ** 作　  者: 喵呜实验室MiaowLabs
@@ -391,9 +376,11 @@ void AngleCalculate(void)
 ***************************************************************/
 void AngleControl(void)	 
 {
-	g_fAngleControlOut = (CAR_ANGLE_SET - g_fCarAngle) * g_tCarAnglePID.P *5 + \
-	(CAR_ANGLE_SPEED_SET - g_fGyroAngleSpeed) * (g_tCarAnglePID.D / 10);
+	g_fAngleControlOut =  (CAR_ANGLE_SET-g_fCarAngle) * g_tCarAnglePID.P *5 + \
+	(CAR_ANGLE_SPEED_SET-g_fGyroAngleSpeed) * (g_tCarAnglePID.D /10);
 }
+
+
 
 /***************************************************************
 ** 函数名称: SpeedControl
@@ -408,52 +395,32 @@ void AngleControl(void)
 
 void SpeedControl(void)
 {
-	float fP, fI;   	
+  	float fP,fI;   	
 	float fDelta;
 	
-	// 左右轮分别调节
-	g_fCarLeftSpeed = g_s32LeftMotorPulseSigma;
-	g_fCarLeftSpeed = 0.7 * g_fCarLeftSpeedOld + 0.3 * g_fCarLeftSpeed; //低通滤波，使速度更平滑
-	g_fCarLeftSpeedOld = g_fCarLeftSpeed;
-	g_fCarRightSpeed = g_s32RightMotorPulseSigma;
-	g_fCarRightSpeed = 0.7 * g_fCarRightSpeedOld + 0.3 * g_fCarRightSpeed; //低通滤波，使速度更平滑
-	g_fCarRightSpeedOld = g_fCarRightSpeed;
-	g_s32LeftMotorPulseSigma = g_s32RightMotorPulseSigma = 0; //全局变量 注意及时清零
-
-	// 左轮调节
-	fDelta = CAR_LEFT_SPEED_SET;
-	fDelta -= g_fCarLeftSpeed;
-	fP = fDelta * (g_tCarSpeedPID.P);
-	fI = fDelta * (g_tCarSpeedPID.I / 10.0);
-	g_fCarLeftPosition += fI;
-	//g_fCarLeftPosition += g_fBluetoothSpeed; // 暂时无用
-
-	//积分上限设限
-	if((s16) g_fCarLeftPosition > CAR_POSITION_MAX) g_fCarLeftPosition = CAR_POSITION_MAX;
-	if((s16) g_fCarLeftPosition < CAR_POSITION_MIN) g_fCarLeftPosition = CAR_POSITION_MIN;
-
-	// 更新输出
-	g_fLeftSpeedControlOutOld = g_fLeftSpeedControlOutNew;
-	g_fLeftSpeedControlOutNew = fP + g_fCarLeftPosition;
-
-	// 右轮调节
-	fDelta = CAR_RIGHT_SPEED_SET;
-	fDelta -= g_fCarRightSpeed;
-	fP = fDelta * (g_tCarSpeedPID.P);
-	fI = fDelta * (g_tCarSpeedPID.I / 10.0);
-	g_fCarRightPosition += fI;
-	//g_fCarRightPosition += g_fBluetoothSpeed; // 暂时无用  
 	
-	//积分上限设限
-	if((s16) g_fCarRightPosition > CAR_POSITION_MAX) g_fCarRightPosition = CAR_POSITION_MAX;
-	if((s16) g_fCarRightPosition < CAR_POSITION_MIN) g_fCarRightPosition = CAR_POSITION_MIN;
+	g_fCarSpeed = (g_s32LeftMotorPulseSigma  + g_s32RightMotorPulseSigma ) * 0.5 ;
+  g_s32LeftMotorPulseSigma = g_s32RightMotorPulseSigma = 0;	  //全局变量 注意及时清零
+    	
+	g_fCarSpeed = 0.7 * g_fCarSpeedOld + 0.3 * g_fCarSpeed ;//低通滤波，使速度更平滑
+	g_fCarSpeedOld = g_fCarSpeed;
+
+	fDelta = CAR_SPEED_SET;
+	fDelta -= g_fCarSpeed;   
 	
-	// 更新输出
-	g_fRightSpeedControlOutOld = g_fRightSpeedControlOutNew;
-	g_fRightSpeedControlOutNew = fP + g_fCarRightPosition;
+	fP = fDelta * (g_tCarSpeedPID.P);
+  fI = fDelta * (g_tCarSpeedPID.I/10.0);
+
+	g_fCarPosition += fI;
+	g_fCarPosition += g_fBluetoothSpeed;	  
+	
+//积分上限设限
+	if((s16)g_fCarPosition > CAR_POSITION_MAX)    g_fCarPosition = CAR_POSITION_MAX;
+	if((s16)g_fCarPosition < CAR_POSITION_MIN)    g_fCarPosition = CAR_POSITION_MIN;
+	
+	g_fSpeedControlOutOld = g_fSpeedControlOutNew;
+  g_fSpeedControlOutNew = fP + g_fCarPosition;
 }
-
-
 /***************************************************************
 ** 函数名称: SpeedControlOutput
 ** 功能描述: 速度环控制输出函数-分多步逐次逼近最终输出，尽可能将对直立环的干扰降低。
@@ -466,14 +433,9 @@ void SpeedControl(void)
 ***************************************************************/
 void SpeedControlOutput(void)
 {
-  float fLeftValue, fRightValue;
-  fLeftValue = g_fLeftSpeedControlOutNew - g_fLeftSpeedControlOutOld;
-  g_fLeftSpeedControlOut = fLeftValue * (g_u8SpeedControlPeriod + 1) / 
-  						   SPEED_CONTROL_PERIOD + g_fLeftSpeedControlOutOld;
-		 
-  fRightValue = g_fRightSpeedControlOutNew - g_fRightSpeedControlOutOld;
-  g_fRightSpeedControlOut = fRightValue * (g_u8SpeedControlPeriod + 1) / 
-  						   SPEED_CONTROL_PERIOD + g_fRightSpeedControlOutOld;
+  float fValue;
+  fValue = g_fSpeedControlOutNew - g_fSpeedControlOutOld ;
+  g_fSpeedControlOut = fValue * (g_u8SpeedControlPeriod + 1) / SPEED_CONTROL_PERIOD + g_fSpeedControlOutOld; 
 }
 
 
@@ -517,10 +479,10 @@ void Steer(float direct, float speed)
 	else
 		g_fBluetoothDirection = -Scale(direct, 0, -10, 0, 400);
 
-	if(speed > 0) 
-		g_iCarLeftSpeedSet = g_iCarRightSpeedSet = Scale(speed, 0, 10, 0, 70);
+	if(speed > 0)
+		g_iCarSpeedSet = Scale(speed, 0, 10, 0, 70);
 	else
-		g_iCarLeftSpeedSet = g_iCarRightSpeedSet = -Scale(speed, 0, -10, 0, 70);
+		g_iCarSpeedSet = -Scale(speed, 0, -10, 0, 70);
 
 }
 
@@ -675,18 +637,23 @@ void TailingControl(void)
 
 	result = InfraredDetect();
 	
-	// Lb and Rb is not available
-	if(result & infrared_channel_Lc)
-		direct -= 6;
+	// if(result & infrared_channel_Lc)
+	// 	direct = -10;
+	// else if(result & infrared_channel_Lb)
+	// 	direct = -6;
 	if(result & infrared_channel_La)
-		direct -= 4;
+		direct = -4;
+	// else if(result & infrared_channel_Rc)
+	// 	direct = 10;
+	// else if(result & infrared_channel_Rb)
+	// 	direct = 6;
 	if(result & infrared_channel_Ra)
-		direct += 4;
-	if (result & infrared_channel_Rc)
-		direct += 6;
+		direct = 4;
+	if (result == 0)
+		direct = 0.0;
 
 	if (direct == 0) speed = 1;
-	else speed = 2;
+	speed = 2;
 
 	Steer(direct, speed);
 
@@ -695,3 +662,4 @@ void TailingControl(void)
 	DebugOutStr(buff);
 #endif
 }
+
