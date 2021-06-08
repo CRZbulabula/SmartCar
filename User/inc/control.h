@@ -57,7 +57,9 @@ extern unsigned char g_u8DirectionControlPeriod;
 extern unsigned char g_u8DirectionControlCount;
 
 extern int g_iMoveCnt;
+extern int g_iOrderPosition;
 extern int g_iLeftTurnRoundCnt, g_iRightTurnRoundCnt;
+extern int g_iDestinationRelatedDirection, g_iWallRelatedPosition;
 
 void CarUpstandInit(void);
 void MotorManage(void);

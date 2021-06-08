@@ -107,9 +107,9 @@ int main(void)
   	
 		if(SoftTimer[2] == 0)
 		{
-			SoftTimer[2] = 10;	// todo: to be modified
+			SoftTimer[2] = 100;	// todo: to be modified
 			
-			ShowHomePage();
+			// ShowHomePage();
 	
 			Read_Distane();
 
@@ -129,8 +129,10 @@ int main(void)
 
 		if (SoftTimer[3] == 0) {
 			SoftTimer[3] = 500;
-			sprintf(buff, "%d %d\n\0", g_iLeftTurnRoundCnt, g_iRightTurnRoundCnt);
-			DebugOutStr(buff);
+			sprintf(buff, "order: %d\n", g_iOrderPosition);
+			//sprintf(buff, "direction: %d, position: %d cnt: %d %d\n\0", 
+			//g_iDestinationRelatedDirection, g_iWallRelatedPosition, g_iLeftTurnRoundCnt, g_iRightTurnRoundCnt);
+			ShowStr(buff);
 		}
 	}
 }

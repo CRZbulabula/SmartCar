@@ -76,6 +76,9 @@ int g_iMoveCnt = 0;
 // 转弯计数
 int g_iLeftTurnRoundCnt = 0;
 int g_iRightTurnRoundCnt = 0;
+int g_iTurnFlag = 0, g_iTurnFinished = 0;
+int g_iOrderPosition = 1;
+int g_iTurnOrder[4] = {1, 1, -1, -1};
 
 int g_iDestinationRelatedDirection = 0;	// 相对于终点的方向：-1表示当前正在向左走  0表示当前正在直行    1表示当前正在向右走
 int g_iWallRelatedPosition = 0;			// 相对于墙的位置：  -1表示在左边墙向前走  1表示在右边墙向前走  0表示其他情况
@@ -347,6 +350,17 @@ void GetMotorPulse(void)  //采集电机速度脉冲
 	g_iLeftTurnRoundCnt -= g_s16LeftMotorPulse;
 	g_iRightTurnRoundCnt -= g_s16RightMotorPulse;
 
+	if (g_iTurnFlag == 1 && g_iLeftTurnRoundCnt < 0 && g_iRightTurnRoundCnt > 0) {
+		// 右转结束
+		g_iTurnFlag = 0;
+		g_iTurnFinished = 1;
+	}
+
+	if (g_iTurnFlag == -1 && g_iLeftTurnRoundCnt > 0 && g_iRightTurnRoundCnt < 0) {
+		// 左转结束
+		g_iTurnFlag = 0;
+		g_iTurnFinished = 1;
+	}
 }
 
 /***************************************************************
@@ -541,11 +555,35 @@ void UltraControl(int mode)
 
 		if((Distance >= 0) && (Distance<= 20))
 		{
-			// #if INFRARE_DEBUG_EN > 0
-			// sprintf(buff, "33333\n");
-			// DebugOutStr(buff);
-			// #endif
-			if(g_iDestinationRelatedDirection == 0)			// 当前相对终点正在直行
+			if (g_iTurnOrder[g_iOrderPosition] == 1) {
+				// 开始右转
+				Steer(5, 0);
+				g_iLeftTurnRoundCnt = TURN_CNT;
+				g_iRightTurnRoundCnt = -TURN_CNT;
+				g_iTurnFlag = 1;
+			} else {
+				// 开始左转
+				Steer(-5, 0);
+				g_iLeftTurnRoundCnt = -TURN_CNT;
+				g_iRightTurnRoundCnt = TURN_CNT;
+				g_iTurnFlag = -1;
+			}
+
+			/*if(g_iDestinationRelatedDirection == -1)		// 当前相对终点正在向左走，并且即将撞墙
+			{
+				//右转750个脉冲计数，转弯角度约为90度
+				Steer(5, 0);
+				g_iLeftTurnRoundCnt = TURN_CNT;
+				g_iRightTurnRoundCnt = -TURN_CNT;
+			}
+			else if(g_iDestinationRelatedDirection == 1)	// 当前相对终点正在向右走，并且即将撞墙
+			{
+				// 左转750个脉冲计数，转弯角度约为90度
+				Steer(-5, 0);
+				g_iLeftTurnRoundCnt = -TURN_CNT;
+				g_iRightTurnRoundCnt = TURN_CNT;
+			}
+			else if(g_iDestinationRelatedDirection == 0)	// 当前相对终点正在直行
 			{
 				if (g_iWallRelatedPosition == 0 || g_iWallRelatedPosition == -1)
 				{
@@ -561,48 +599,19 @@ void UltraControl(int mode)
 					g_iLeftTurnRoundCnt = -TURN_CNT;
 					g_iRightTurnRoundCnt = TURN_CNT;
 				}
-			}
-			else if(g_iDestinationRelatedDirection == -1)	// 当前相对终点正在向左走，并且即将撞墙
-			{
-				//右转750个脉冲计数，转弯角度约为90度
-				Steer(5, 0);
-				g_iLeftTurnRoundCnt = TURN_CNT;
-				g_iRightTurnRoundCnt = -TURN_CNT;
-			}
-			else											// 当前相对终点正在向右走，并且即将撞墙
-			{
-				// 左转750个脉冲计数，转弯角度约为90度
-				Steer(-5, 0);
-				g_iLeftTurnRoundCnt = -TURN_CNT;
-				g_iRightTurnRoundCnt = TURN_CNT;
-			}
+			}*/
 		}
 		
+		if (g_iTurnFinished) {
+			Steer(0, 2);
+			g_iTurnFinished = 0;
+			g_iOrderPosition = (g_iOrderPosition + 1) % 4;
+		}
+
+		/*
 		// 转弯完成
-		// 直走通过右转变为向右走
-		if (g_iLeftTurnRoundCnt < 0 && g_iRightTurnRoundCnt > 0 && g_iDestinationRelatedDirection == 0 && (g_iWallRelatedPosition == 0 || g_iWallRelatedPosition == -1))
-		{
-			// #if INFRARE_DEBUG_EN > 0
-			// sprintf(buff, "44444\n");
-			// DebugOutStr(buff);
-			// #endif
-			g_iDestinationRelatedDirection = 1;
-			g_iWallRelatedPosition = 0;
-			Steer(0, 4);
-		}
-		// 直走通过左转变为向左走
-		else if (g_iLeftTurnRoundCnt > 0 && g_iRightTurnRoundCnt < 0 && g_iDestinationRelatedDirection == 0 && g_iWallRelatedPosition == 1)
-		{
-			// #if INFRARE_DEBUG_EN > 0
-			// sprintf(buff, "44444\n");
-			// DebugOutStr(buff);
-			// #endif
-			g_iDestinationRelatedDirection = -1;
-			g_iWallRelatedPosition = 0;
-			Steer(0, 4);
-		}
 		// 向左走通过右转恢复成直走 靠墙的左边
-		else if(g_iLeftTurnRoundCnt < 0 && g_iRightTurnRoundCnt > 0 && g_iDestinationRelatedDirection == -1 )
+		if(g_iLeftTurnRoundCnt < 0 && g_iRightTurnRoundCnt > 0 && g_iDestinationRelatedDirection == -1 )
 		{
 			// #if INFRARE_DEBUG_EN > 0
 			// 	sprintf(buff, "44444\n");
@@ -610,7 +619,7 @@ void UltraControl(int mode)
 			// 	#endif
 			g_iDestinationRelatedDirection = 0;
 			g_iWallRelatedPosition = -1;
-			Steer(0, 4);
+			Steer(0, 2);
 		}
 		// 向右走通过左转恢复成直走 靠墙的右边
 		else if(g_iLeftTurnRoundCnt > 0 && g_iRightTurnRoundCnt < 0 && g_iDestinationRelatedDirection == 1)
@@ -621,8 +630,31 @@ void UltraControl(int mode)
 			// 	#endif
 			g_iDestinationRelatedDirection = 0;
 			g_iWallRelatedPosition = 1;
-			Steer(0, 4);
+			Steer(0, 2);
 		}
+		// 直走通过右转变为向右走
+		else if (g_iLeftTurnRoundCnt < 0 && g_iRightTurnRoundCnt > 0 && g_iDestinationRelatedDirection == 0 && (g_iWallRelatedPosition == 0 || g_iWallRelatedPosition == -1))
+		{
+			// #if INFRARE_DEBUG_EN > 0
+			// sprintf(buff, "44444\n");
+			// DebugOutStr(buff);
+			// #endif
+			g_iDestinationRelatedDirection = 1;
+			g_iWallRelatedPosition = 0;
+			Steer(0, 2);
+		}
+		// 直走通过左转变为向左走
+		else if (g_iLeftTurnRoundCnt > 0 && g_iRightTurnRoundCnt < 0 && g_iDestinationRelatedDirection == 0 && g_iWallRelatedPosition == 1)
+		{
+			// #if INFRARE_DEBUG_EN > 0
+			// sprintf(buff, "44444\n");
+			// DebugOutStr(buff);
+			// #endif
+			g_iDestinationRelatedDirection = -1;
+			g_iWallRelatedPosition = 0;
+			Steer(0, 2);
+		}
+		*/
 	}
 }
 
