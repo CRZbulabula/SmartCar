@@ -81,5 +81,6 @@ void InfrareSelfCheck(void)
 
 int IsInfrareOK(void)
 {
+	InfrareSelfCheck();
 	return !InfrareError;
 }

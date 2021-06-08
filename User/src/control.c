@@ -90,6 +90,7 @@ int g_iTurnOrder[4] = {1, 1, -1, -1};
 int g_iDestinationRelatedDirection = 0;	// 相对于终点的方向：-1表示当前正在向左走  0表示当前正在直行    1表示当前正在向右走
 int g_iWallRelatedPosition = 0;			// 相对于墙的位置：  -1表示在左边墙向前走  1表示在右边墙向前走  0表示其他情况
 
+int g_iCarState = 1; // 车的状态 0表示task1 1表示红外 2表示超声
 
 static int AbnormalSpinFlag = 0;
 /***************************************************************
@@ -596,37 +597,44 @@ void UltraControl(int mode)
 void TailingControl(void)
 {
 #if INFRARE_DEBUG_EN > 0
-	char buff[32];	
+	char buff[32] = {0};
 #endif
 	char result;
 	float direct = 0;
 	float speed = 0;
-
+	int la,ra,lb,rb;
+	la = ra = lb = rb = 0;
+	if (!IsInfrareOK()) {
+		g_iCarState = 2;
+	}
 	result = InfraredDetect();
 	
-	// if(result & infrared_channel_Lc)
-	// 	direct = -10;
-	// else if(result & infrared_channel_Lb)
-	// 	direct = -6;
-	if(result & infrared_channel_La)
+	if(result & infrared_channel_Lc){
+	 	direct -= 6;
+		lb = 1;
+	}
+	if(result & infrared_channel_La){
 		direct = -4;
-	// else if(result & infrared_channel_Rc)
-	// 	direct = 10;
-	// else if(result & infrared_channel_Rb)
-	// 	direct = 6;
-	if(result & infrared_channel_Ra)
-		direct = 4;
-	if (result == 0)
-		direct = 0.0;
+		la = 1;
+	}
+	if(result & infrared_channel_Ra){
+		direct += 4;
+		ra = 1;
+	}
+	if (result & infrared_channel_Rc){
+	 	direct += 6;
+		rb = 1;
+	}
 
 	if (direct == 0) speed = 1;
-	speed = 2;
+	else speed = 2;
 
 	Steer(direct, speed);
 
 #if INFRARE_DEBUG_EN > 0
-	//sprintf(buff, "Steer:%d, Speed:%d\r\n",(int)direct,  (int)speed);
-	//DebugOutStr(buff);
+	sprintf(buff, "lb:%d, la:%d, ra:%d, rb:%d\r\n",lb, la, ra, rb);
+	ShowStr(buff);
+	//DebugOutStr(buff)
 #endif
 }
 

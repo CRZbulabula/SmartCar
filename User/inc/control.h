@@ -11,24 +11,24 @@ typedef struct _PID_t{
 #define ACCEL_SENSITIVITY  16384.0
 #define GYRO_SENSITIVITY 16.4
 #define M_PI 3.14159265359
-#define    GYRO_OFFSET      0          //���������ƫ��ֵ
+#define    GYRO_OFFSET      0          //陀螺仪零点偏移值
 //#define 	 GRAVITY_OFFSET   (g_iGravity_Offset)      			//
-#define    CAR_ZERO_ANGLE   (2)
+#define CAR_ZERO_ANGLE   (2)
 #define CAR_ANGLE_SET 0
 #define CAR_ANGLE_SPEED_SET 0
-/******�ٶȿ�����غ궨��******/
+/******速度控制相关宏定义******/
 #define CAR_POSITION_SET      0
 #define CAR_SPEED_SET         g_iCarSpeedSet
 #define MOTOR_LEFT_SPEED_POSITIVE  (g_fLeftMotorOut >0)
 #define MOTOR_RIGHT_SPEED_POSITIVE (g_fRightMotorOut>0)
-#define SPEED_CONTROL_PERIOD	 25	    //�ٶȻ���������
+#define SPEED_CONTROL_PERIOD	 25	    //速度环控制周期
 #define CAR_SPEED_CONSTANT		(1000.0/(float)SPEED_CONTROL_PERIOD/(float)OPTICAL_ENCODE_CONSTANT)
 #define CAR_POSITION_MAX	700
 #define CAR_POSITION_MIN	(-900)
-/******���������غ궨��******/
-#define MOTOR_OUT_DEAD_VAL       0	   //����ֵ8
-#define MOTOR_OUT_MAX           999	   //ռ�ձ������ֵ
-#define MOTOR_OUT_MIN         (-999)   //ռ�ձȸ����ֵ
+/******电机控制相关宏定义******/
+#define MOTOR_OUT_DEAD_VAL       0	   //死区值8
+#define MOTOR_OUT_MAX           999	   //占空比正最大值
+#define MOTOR_OUT_MIN         (-999)   //占空比负最大值
 
 #define TURN_CNT 300
 
@@ -55,12 +55,15 @@ extern unsigned char g_u8SpeedControlPeriod;
 extern unsigned char g_u8DirectionControlPeriod;
 extern unsigned char g_u8DirectionControlCount;
 
+extern int SPEED_FORCE_EQUAL;
 extern int g_iMoveCnt;
 extern float g_iCarSpeedSet;
 
 extern int g_iOrderPosition;
 extern int g_iLeftTurnRoundCnt, g_iRightTurnRoundCnt;
 extern int g_iDestinationRelatedDirection, g_iWallRelatedPosition;
+
+extern int g_iCarState;
 
 void CarUpstandInit(void);
 void MotorManage(void);

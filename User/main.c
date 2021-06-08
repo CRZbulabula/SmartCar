@@ -65,19 +65,22 @@ int main(void)
 	
 	ShowHomePageInit();
 	
-	SoftTimer[3] = 2000;
-	while(SoftTimer[3]) {}
-	Steer(0, 2);
- 
 	//SoftTimer[3] = 2000;
-	//while (SoftTimer[3] > 0) {}
+	//while(SoftTimer[3]) {}
+ 
 	//Steer(0, 3);
-
+	SPEED_FORCE_EQUAL = 0;
 	while (1)
 	{
-		Task1(SoftTimer);		
-			
-		/*SecTask();			//秒级任务
+		Task1(SoftTimer);
+		/*
+		if(g_iCarState == 1 && SoftTimer[2] == 0)
+		{
+			SoftTimer[2] = 10;
+			TailingControl();
+		}
+		
+		//SecTask();			//秒级任务
 
 		if(SoftTimer[1] == 0)
 		{// 每隔20ms 执行一次
@@ -87,9 +90,9 @@ int main(void)
 			//Parse(Uart3Buffer);
 		}
    	
-		if(SoftTimer[2] == 0)
+		if(SoftTimer[3] == 0)
 		{
-			SoftTimer[2] = 100;	// todo: to be modified
+			SoftTimer[3] = 100;	// todo: to be modified
 			
 			// ShowHomePage();
 	
@@ -98,18 +101,19 @@ int main(void)
 			if(g_CarRunningMode == ULTRA_FOLLOW_MODE){
 				if(IsUltraOK())UltraControl(0);	//超声波跟随模式
 	 		}
-			if(g_CarRunningMode == ULTRA_AVOID_MODE){
-				if(IsUltraOK())
-				{
-					UltraControl(1);	//超声波避障模式
-				}
-	 		}
+			//if(g_CarRunningMode == ULTRA_AVOID_MODE){
+			if(g_iCarState == 2)
+			{
+				UltraControl(1);	//超声波避障模式
+			}
+	 		//}
 			else if(g_CarRunningMode == INFRARED_TRACE_MODE){
 				TailingControl();
 			}
 		}
+		*/
 
-		if (SoftTimer[3] == 0) {
+		/*if (SoftTimer[3] == 0) {
 			SoftTimer[3] = 500;
 			sprintf(buff, "order: %d\n", g_iOrderPosition);
 			//sprintf(buff, "direction: %d, position: %d cnt: %d %d\n\0", 
