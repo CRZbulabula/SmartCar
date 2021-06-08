@@ -72,8 +72,8 @@ int main(void)
 	SPEED_FORCE_EQUAL = 0;
 	while (1)
 	{
-		Task1(SoftTimer);
-		/*
+		// Task1(SoftTimer);
+		
 		if(g_iCarState == 1 && SoftTimer[2] == 0)
 		{
 			SoftTimer[2] = 10;
@@ -111,7 +111,7 @@ int main(void)
 				TailingControl();
 			}
 		}
-		*/
+		
 
 		/*if (SoftTimer[3] == 0) {
 			SoftTimer[3] = 500;
