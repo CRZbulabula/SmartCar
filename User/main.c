@@ -49,6 +49,7 @@ int main(void)
 {	
 	#if INFRARE_DEBUG_EN > 0
 	char buff[32];	
+	memset(buff, 0, sizeof(buff));
 	#endif
 	
 	BspInit();				//初始化BSP
@@ -68,24 +69,29 @@ int main(void)
 	while(SoftTimer[3]) {}
 	Steer(0, 2);
  
+	//SoftTimer[3] = 2000;
+	//while (SoftTimer[3] > 0) {}
+	//Steer(0, 3);
+
 	while (1)
 	{
-		
-		SecTask();			//秒级任务
+		Task1(SoftTimer);		
+			
+		/*SecTask();			//秒级任务
 
 		if(SoftTimer[1] == 0)
 		{// 每隔20ms 执行一次
 			SoftTimer[1] = 20;
 			ResponseIMU();			
 			DebugService();			
-			Parse(Uart3Buffer);
+			//Parse(Uart3Buffer);
 		}
    	
 		if(SoftTimer[2] == 0)
 		{
 			SoftTimer[2] = 100;	// todo: to be modified
 			
-			ShowHomePage();
+			// ShowHomePage();
 	
 			Read_Distane();
 
@@ -95,17 +101,21 @@ int main(void)
 			if(g_CarRunningMode == ULTRA_AVOID_MODE){
 				if(IsUltraOK())
 				{
-					#if INFRARE_DEBUG_EN > 0
-					sprintf(buff, "11111\n");
-					DebugOutStr(buff);
-					#endif
 					UltraControl(1);	//超声波避障模式
 				}
 	 		}
 			else if(g_CarRunningMode == INFRARED_TRACE_MODE){
 				TailingControl();
 			}
-		}	
+		}
+
+		if (SoftTimer[3] == 0) {
+			SoftTimer[3] = 500;
+			sprintf(buff, "order: %d\n", g_iOrderPosition);
+			//sprintf(buff, "direction: %d, position: %d cnt: %d %d\n\0", 
+			//g_iDestinationRelatedDirection, g_iWallRelatedPosition, g_iLeftTurnRoundCnt, g_iRightTurnRoundCnt);
+			ShowStr(buff);
+		}*/
 	}
 }
 

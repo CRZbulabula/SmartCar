@@ -11,25 +11,26 @@ typedef struct _PID_t{
 #define ACCEL_SENSITIVITY  16384.0
 #define GYRO_SENSITIVITY 16.4
 #define M_PI 3.14159265359
-#define    GYRO_OFFSET      0          //ÍÓÂÝÒÇÁãµãÆ«ÒÆÖµ
+#define    GYRO_OFFSET      0          //ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Æ«ï¿½ï¿½Öµ
 //#define 	 GRAVITY_OFFSET   (g_iGravity_Offset)      			//
 #define    CAR_ZERO_ANGLE   (2)
 #define CAR_ANGLE_SET 0
 #define CAR_ANGLE_SPEED_SET 0
-/******ËÙ¶È¿ØÖÆÏà¹Øºê¶¨Òå******/
+/******ï¿½Ù¶È¿ï¿½ï¿½ï¿½ï¿½ï¿½Øºê¶¨ï¿½ï¿½******/
 #define CAR_POSITION_SET      0
 #define CAR_SPEED_SET         g_iCarSpeedSet
 #define MOTOR_LEFT_SPEED_POSITIVE  (g_fLeftMotorOut >0)
 #define MOTOR_RIGHT_SPEED_POSITIVE (g_fRightMotorOut>0)
-#define SPEED_CONTROL_PERIOD	 25	    //ËÙ¶È»·¿ØÖÆÖÜÆÚ
+#define SPEED_CONTROL_PERIOD	 25	    //ï¿½Ù¶È»ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 #define CAR_SPEED_CONSTANT		(1000.0/(float)SPEED_CONTROL_PERIOD/(float)OPTICAL_ENCODE_CONSTANT)
 #define CAR_POSITION_MAX	700
 #define CAR_POSITION_MIN	(-900)
-/******µç»ú¿ØÖÆÏà¹Øºê¶¨Òå******/
-#define MOTOR_OUT_DEAD_VAL       0	   //ËÀÇøÖµ8
-#define MOTOR_OUT_MAX           999	   //Õ¼¿Õ±ÈÕý×î´óÖµ
-#define MOTOR_OUT_MIN         (-999)   //Õ¼¿Õ±È¸º×î´óÖµ
+/******ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Øºê¶¨ï¿½ï¿½******/
+#define MOTOR_OUT_DEAD_VAL       0	   //ï¿½ï¿½ï¿½ï¿½Öµ8
+#define MOTOR_OUT_MAX           999	   //Õ¼ï¿½Õ±ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Öµ
+#define MOTOR_OUT_MIN         (-999)   //Õ¼ï¿½Õ±È¸ï¿½ï¿½ï¿½ï¿½Öµ
 
+#define TURN_CNT 300
 
 extern short  g_s16LeftMotorPulse;
 extern short  g_s16RightMotorPulse;
@@ -54,6 +55,12 @@ extern unsigned char g_u8SpeedControlPeriod;
 extern unsigned char g_u8DirectionControlPeriod;
 extern unsigned char g_u8DirectionControlCount;
 
+extern int g_iMoveCnt;
+extern float g_iCarSpeedSet;
+
+extern int g_iOrderPosition;
+extern int g_iLeftTurnRoundCnt, g_iRightTurnRoundCnt;
+extern int g_iDestinationRelatedDirection, g_iWallRelatedPosition;
 
 void CarUpstandInit(void);
 void MotorManage(void);
@@ -70,6 +77,8 @@ void Steer(float direct, float speed);
 void UltraControl(int mode);
 
 void TailingControl(void);
+
+void Task1(unsigned short* SoftTimer);
 
 
 #endif

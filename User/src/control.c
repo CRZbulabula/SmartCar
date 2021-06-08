@@ -1,17 +1,18 @@
 /**********************************************************************
-°æÈ¨ËùÓĞ£º	  ß÷ÎØÊµÑéÊÒMiaowLabs£¬2017.
-¹Ù		Íø£º	http://www.miaowlabs.com
-ÌÔ		±¦£º	https://miaowlabs.taobao.com/
-ÎÄ ¼ş Ãû: 	  control.c
-×÷    Õß:   ß÷ÎØÊµÑéÊÒMiaowLabs
-°æ		±¾:   3.00
-Íê³ÉÈÕÆÚ:   2017.03.01
-¸Å		Òª: 	
+ç‰ˆæƒæ‰€æœ‰ï¼š	  å–µå‘œå®éªŒå®¤MiaowLabsï¼Œ2017.
+å®˜		ç½‘ï¼š	http://www.miaowlabs.com
+æ·˜		å®ï¼š	https://miaowlabs.taobao.com/
+æ–‡ ä»¶ å: 	  control.c
+ä½œ    è€…:   å–µå‘œå®éªŒå®¤MiaowLabs
+ç‰ˆ		æœ¬:   3.00
+å®Œæˆæ—¥æœŸ:   2017.03.01
+æ¦‚		è¦: 	
 
 
 ***********************************************************************/
 #include "math.h"
 #include "stdio.h"
+#include "string.h"
 #include "control.h"
 #include "debug.H"
 #include "MPU6050.H"
@@ -19,7 +20,7 @@
 #include "bsp.h"
 #include "ultrasonic.h"
 #include "infrare.h"
-
+#include "display.h"
 
 unsigned char g_u8MainEventCount;
 unsigned char g_u8SpeedControlCount;
@@ -27,12 +28,12 @@ unsigned char g_u8SpeedControlPeriod;
 unsigned char g_u8DirectionControlPeriod;
 unsigned char g_u8DirectionControlCount;
 
-unsigned char g_cMotorDisable = 0;//ÖµµÈÓÚ0Ê±µç»úÕı³£×ª¶¯£¬·ñÔòÍ£Ö¹×ª¶¯
+unsigned char g_cMotorDisable = 0;//å€¼ç­‰äº0æ—¶ç”µæœºæ­£å¸¸è½¬åŠ¨ï¼Œå¦åˆ™åœæ­¢è½¬åŠ¨
 
 
 int g_iGravity_Offset = 0;
 
-/******µç»ú¿ØÖÆ²ÎÊı******/
+/******ç”µæœºæ§åˆ¶å‚æ•°******/
 float g_fSpeedControlOut;
 float g_fSpeedControlOutOld;
 float g_fSpeedControlOutNew;
@@ -40,7 +41,10 @@ float g_fAngleControlOut;
 float g_fLeftMotorOut;
 float g_fRightMotorOut;
 
-/******ËÙ¶È¿ØÖÆ²ÎÊı******/
+/* ä»»åŠ¡1ä¸“ç”¨ */
+float TASK1_LEFT_OFFSET, TASK1_RIGHT_OFFSET;
+
+/******é€Ÿåº¦æ§åˆ¶å‚æ•°******/
 
 short  g_s16LeftMotorPulse;
 short  g_s16RightMotorPulse;
@@ -49,16 +53,17 @@ int  g_s32LeftMotorPulseOld;
 int  g_s32RightMotorPulseOld;
 int  g_s32LeftMotorPulseSigma;
 int  g_s32RightMotorPulseSigma;
+int  g_s32MotorPulseDelta;
 
 float g_fCarSpeed;
 float g_iCarSpeedSet;
 float g_fCarSpeedOld;
 float g_fCarPosition;
 
-/*-----½Ç¶È»·ºÍËÙ¶È»·PID¿ØÖÆ²ÎÊı-----*/
+/*-----è§’åº¦ç¯å’Œé€Ÿåº¦ç¯PIDæ§åˆ¶å‚æ•°-----*/
 PID_t g_tCarAnglePID={17.0, 0, 23.0};	//*5 /10
 PID_t g_tCarSpeedPID={15.25, 1.08, 0};	//i/10
-/******À¶ÑÀ¿ØÖÆ²ÎÊı******/
+/******è“ç‰™æ§åˆ¶å‚æ•°******/
 float g_fBluetoothSpeed;
 float g_fBluetoothDirection;
 float g_fBluetoothDirectionOld;
@@ -69,25 +74,33 @@ float g_fCarAngle;         	//
 float g_fGyroAngleSpeed;		//     			
 float g_fGravityAngle;			//
 
+// ç›´è¡Œè®¡æ•°
+int g_iMoveCnt = 0;
 
+int SPEED_FORCE_EQUAL = 1;
+
+// è½¬å¼¯è®¡æ•°
 int g_iLeftTurnRoundCnt = 0;
 int g_iRightTurnRoundCnt = 0;
-<<<<<<< HEAD
-=======
-int g_iDestinationRelatedDirection = 0;	// Ïà¶ÔÓÚÖÕµãµÄ·½Ïò£º-1±íÊ¾µ±Ç°ÕıÔÚÏò×ó×ß  0±íÊ¾µ±Ç°ÕıÔÚÖ±ĞĞ    1±íÊ¾µ±Ç°ÕıÔÚÏòÓÒ×ß
-int g_iWallRelatedPosition = 0;			// Ïà¶ÔÓÚÇ½µÄÎ»ÖÃ£º  -1±íÊ¾ÔÚ×ó±ßÇ½ÏòÇ°×ß  1±íÊ¾ÔÚÓÒ±ßÇ½ÏòÇ°×ß  0±íÊ¾ÆäËûÇé¿ö
->>>>>>> 1c47d39ce1f922a03885a9a8ce326c1dc3e8d88e
+
+int g_iTurnFlag = 0, g_iTurnFinished = 0;
+int g_iOrderPosition = 1;
+int g_iTurnOrder[4] = {1, 1, -1, -1};
+
+int g_iDestinationRelatedDirection = 0;	// ç›¸å¯¹äºç»ˆç‚¹çš„æ–¹å‘ï¼š-1è¡¨ç¤ºå½“å‰æ­£åœ¨å‘å·¦èµ°  0è¡¨ç¤ºå½“å‰æ­£åœ¨ç›´è¡Œ    1è¡¨ç¤ºå½“å‰æ­£åœ¨å‘å³èµ°
+int g_iWallRelatedPosition = 0;			// ç›¸å¯¹äºå¢™çš„ä½ç½®ï¼š  -1è¡¨ç¤ºåœ¨å·¦è¾¹å¢™å‘å‰èµ°  1è¡¨ç¤ºåœ¨å³è¾¹å¢™å‘å‰èµ°  0è¡¨ç¤ºå…¶ä»–æƒ…å†µ
+
 
 static int AbnormalSpinFlag = 0;
 /***************************************************************
-** º¯ÊıÃû³Æ: CarUpstandInit
-** ¹¦ÄÜÃèÊö: È«¾Ö±äÁ¿³õÊ¼»¯º¯Êı
-** Êä¡¡Èë:   
-** Êä¡¡³ö:   
-** È«¾Ö±äÁ¿: 
-** ×÷¡¡Õß:   ß÷ÎØÊµÑéÊÒMiaowLabs
-** ÌÔ  ±¦£º  https://miaowlabs.taobao.com/
-** ÈÕ¡¡ÆÚ:   2014Äê08ÔÂ01ÈÕ
+** å‡½æ•°åç§°: CarUpstandInit
+** åŠŸèƒ½æè¿°: å…¨å±€å˜é‡åˆå§‹åŒ–å‡½æ•°
+** è¾“ã€€å…¥:   
+** è¾“ã€€å‡º:   
+** å…¨å±€å˜é‡: 
+** ä½œã€€è€…:   å–µå‘œå®éªŒå®¤MiaowLabs
+** æ·˜  å®ï¼š  https://miaowlabs.taobao.com/
+** æ—¥ã€€æœŸ:   2014å¹´08æœˆ01æ—¥
 ***************************************************************/
 void CarUpstandInit(void)
 {
@@ -114,25 +127,25 @@ void CarUpstandInit(void)
 
 
 /***************************************************************
-** º¯ÊıÃû³Æ: AbnormalSpinDetect
-** ¹¦ÄÜÃèÊö: µç»ú×ªËÙÒì³£¼ì²â      
-** Êä¡¡Èë:   
-** Êä¡¡³ö:   
-** È«¾Ö±äÁ¿: 
-** ×÷¡¡Õß:   ß÷ÎØÊµÑéÊÒMiaowLabs
-** ÈÕ¡¡ÆÚ:   2017Äê4ÔÂ26ÈÕ
+** å‡½æ•°åç§°: AbnormalSpinDetect
+** åŠŸèƒ½æè¿°: ç”µæœºè½¬é€Ÿå¼‚å¸¸æ£€æµ‹      
+** è¾“ã€€å…¥:   
+** è¾“ã€€å‡º:   
+** å…¨å±€å˜é‡: 
+** ä½œã€€è€…:   å–µå‘œå®éªŒå®¤MiaowLabs
+** æ—¥ã€€æœŸ:   2017å¹´4æœˆ26æ—¥
 ***************************************************************/
 
 void AbnormalSpinDetect(short leftSpeed,short rightSpeed)
 {
 	static unsigned short count = 0;
 	
-	//ËÙ¶ÈÉèÖÃÎª0Ê±¼ì²â£¬·ñÔò²»¼ì²â
+	//é€Ÿåº¦è®¾ç½®ä¸º0æ—¶æ£€æµ‹ï¼Œå¦åˆ™ä¸æ£€æµ‹
 	if(g_iCarSpeedSet==0)
 	{
 		if(((leftSpeed>30)&&(rightSpeed>30)&&(g_fCarAngle > -30) && (g_fCarAngle < 30))
 			||((leftSpeed<-30)&&(rightSpeed<-30))&&(g_fCarAngle > -30) && (g_fCarAngle < 30))
-		{// ×óÓÒµç»ú×ªËÙ´óÓÚ30¡¢·½ÏòÏàÍ¬¡¢³ÖĞøÊ±¼ä³¬¹ı250ms£¬ÇÒ³µÉí½Ç¶È²»³¬¹ı30¶È£¬ÔòÅĞ¶ÏÎªĞü¿Õ¿Õ×ª
+		{// å·¦å³ç”µæœºè½¬é€Ÿå¤§äº30ã€æ–¹å‘ç›¸åŒã€æŒç»­æ—¶é—´è¶…è¿‡250msï¼Œä¸”è½¦èº«è§’åº¦ä¸è¶…è¿‡30åº¦ï¼Œåˆ™åˆ¤æ–­ä¸ºæ‚¬ç©ºç©ºè½¬
 			count++;
 			if(count>50){
 				count = 0;
@@ -149,13 +162,13 @@ void AbnormalSpinDetect(short leftSpeed,short rightSpeed)
 }
 
 /***************************************************************
-** º¯ÊıÃû³Æ: LandingDetect
-** ¹¦ÄÜÃèÊö: Ğ¡³µ×ÅµØ¼ì²â      
-** Êä¡¡Èë:   
-** Êä¡¡³ö:   
-** È«¾Ö±äÁ¿: 
-** ×÷¡¡Õß:   ß÷ÎØÊµÑéÊÒMiaowLabs
-** ÈÕ¡¡ÆÚ:   2017Äê4ÔÂ26ÈÕ
+** å‡½æ•°åç§°: LandingDetect
+** åŠŸèƒ½æè¿°: å°è½¦ç€åœ°æ£€æµ‹      
+** è¾“ã€€å…¥:   
+** è¾“ã€€å‡º:   
+** å…¨å±€å˜é‡: 
+** ä½œã€€è€…:   å–µå‘œå®éªŒå®¤MiaowLabs
+** æ—¥ã€€æœŸ:   2017å¹´4æœˆ26æ—¥
 ***************************************************************/
 void LandingDetect(void)
 {
@@ -164,12 +177,12 @@ void LandingDetect(void)
 	
 	if(AbnormalSpinFlag == 0)return;
 	
-	// Ğ¡³µ½Ç¶È5¡ã~-5¡ãÆô¶¯¼ì²â
+	// å°è½¦è§’åº¦5Â°~-5Â°å¯åŠ¨æ£€æµ‹
 	if((g_fCarAngle > -5) && (g_fCarAngle < 5))
 	{
 		count1++;
 		if(count1 >= 50)
-		{//Ã¿¸ô250msÅĞ¶ÏÒ»´ÎĞ¡³µ½Ç¶È±ä»¯Á¿£¬±ä»¯Á¿Ğ¡ÓÚ0.8¡ã»ò´óÓÚ-0.8¡ãÅĞ¶ÏÎªĞ¡³µ¾²Ö¹
+		{//æ¯éš”250msåˆ¤æ–­ä¸€æ¬¡å°è½¦è§’åº¦å˜åŒ–é‡ï¼Œå˜åŒ–é‡å°äº0.8Â°æˆ–å¤§äº-0.8Â°åˆ¤æ–­ä¸ºå°è½¦é™æ­¢
 			count1 = 0;
 			if(((g_fCarAngle - lastCarAngle) < 0.8) && ((g_fCarAngle - lastCarAngle) > -0.8))
 			{
@@ -195,13 +208,13 @@ void LandingDetect(void)
 }
 
 /***************************************************************
-** º¯ÊıÃû³Æ: MotorManage
-** ¹¦ÄÜÃèÊö: µç»úÊ¹ÄÜ/Ê§ÄÜ¿ØÖÆ      
-** Êä¡¡Èë:   
-** Êä¡¡³ö:   
-** È«¾Ö±äÁ¿: 
-** ×÷¡¡Õß:   ß÷ÎØÊµÑéÊÒMiaowLabs
-** ÈÕ¡¡ÆÚ:   2017Äê4ÔÂ26ÈÕ
+** å‡½æ•°åç§°: MotorManage
+** åŠŸèƒ½æè¿°: ç”µæœºä½¿èƒ½/å¤±èƒ½æ§åˆ¶      
+** è¾“ã€€å…¥:   
+** è¾“ã€€å‡º:   
+** å…¨å±€å˜é‡: 
+** ä½œã€€è€…:   å–µå‘œå®éªŒå®¤MiaowLabs
+** æ—¥ã€€æœŸ:   2017å¹´4æœˆ26æ—¥
 ***************************************************************/
 void MotorManage(void)
 {
@@ -231,14 +244,14 @@ void MotorManage(void)
 }
 
 /***************************************************************
-** º¯ÊıÃû³Æ: SetMotorVoltageAndDirection
-** ¹¦ÄÜÃèÊö: µç»ú×ªËÙ¼°·½Ïò¿ØÖÆº¯Êı             
-** Êä¡¡Èë:   
-** Êä¡¡³ö:   
-** È«¾Ö±äÁ¿: 
-** ×÷¡¡Õß:   ß÷ÎØÊµÑéÊÒMiaowLabs
-** ÌÔ  ±¦£º  https://miaowlabs.taobao.com/
-** ÈÕ¡¡ÆÚ:   2018Äê08ÔÂ27ÈÕ
+** å‡½æ•°åç§°: SetMotorVoltageAndDirection
+** åŠŸèƒ½æè¿°: ç”µæœºè½¬é€ŸåŠæ–¹å‘æ§åˆ¶å‡½æ•°             
+** è¾“ã€€å…¥:   
+** è¾“ã€€å‡º:   
+** å…¨å±€å˜é‡: 
+** ä½œã€€è€…:   å–µå‘œå®éªŒå®¤MiaowLabs
+** æ·˜  å®ï¼š  https://miaowlabs.taobao.com/
+** æ—¥ã€€æœŸ:   2018å¹´08æœˆ27æ—¥
 ***************************************************************/
 void SetMotorVoltageAndDirection(int i16LeftVoltage,int i16RightVoltage)
 {
@@ -289,30 +302,40 @@ void SetMotorVoltageAndDirection(int i16LeftVoltage,int i16RightVoltage)
 
 
 /***************************************************************
-** º¯ÊıÃû³Æ: MotorOutput
-** ¹¦ÄÜÃèÊö: µç»úÊä³öº¯Êı
-             ½«Ö±Á¢¿ØÖÆ¡¢ËÙ¶È¿ØÖÆ¡¢·½Ïò¿ØÖÆµÄÊä³öÁ¿½øĞĞµş¼Ó,²¢¼Ó
-			 ÈëËÀÇø³£Á¿£¬¶ÔÊä³ö±¥ºÍ×÷³ö´¦Àí¡£
-** Êä¡¡Èë:   
-** Êä¡¡³ö:   
-** È«¾Ö±äÁ¿: 
-** ×÷¡¡Õß:   ß÷ÎØÊµÑéÊÒMiaowLabs
-** ÌÔ  ±¦£º  https://miaowlabs.taobao.com/ 
-** ÈÕ¡¡ÆÚ:   2014Äê08ÔÂ01ÈÕ
+** å‡½æ•°åç§°: MotorOutput
+** åŠŸèƒ½æè¿°: ç”µæœºè¾“å‡ºå‡½æ•°
+             å°†ç›´ç«‹æ§åˆ¶ã€é€Ÿåº¦æ§åˆ¶ã€æ–¹å‘æ§åˆ¶çš„è¾“å‡ºé‡è¿›è¡Œå åŠ ,å¹¶åŠ 
+			 å…¥æ­»åŒºå¸¸é‡ï¼Œå¯¹è¾“å‡ºé¥±å’Œä½œå‡ºå¤„ç†ã€‚
+** è¾“ã€€å…¥:   
+** è¾“ã€€å‡º:   
+** å…¨å±€å˜é‡: 
+** ä½œã€€è€…:   å–µå‘œå®éªŒå®¤MiaowLabs
+** æ·˜  å®ï¼š  https://miaowlabs.taobao.com/ 
+** æ—¥ã€€æœŸ:   2014å¹´08æœˆ01æ—¥
 ***************************************************************/
 void MotorOutput(void)
 {
-	g_fLeftMotorOut  = g_fAngleControlOut - g_fSpeedControlOut - g_fBluetoothDirection ;	//ÕâÀïµÄµç»úÊä³öµÈÓÚ½Ç¶È»·¿ØÖÆÁ¿ + ËÙ¶È»·Íâ»·,ÕâÀïµÄ - g_fSpeedControlOut ÊÇÒòÎªËÙ¶È»·µÄ¼«ĞÔ¸ú½Ç¶È»·²»Ò»Ñù£¬½Ç¶È»·ÊÇ¸º·´À¡£¬ËÙ¶È»·ÊÇÕı·´À¡
+	g_fLeftMotorOut  = g_fAngleControlOut - g_fSpeedControlOut - g_fBluetoothDirection ;	//è¿™é‡Œçš„ç”µæœºè¾“å‡ºç­‰äºè§’åº¦ç¯æ§åˆ¶é‡ + é€Ÿåº¦ç¯å¤–ç¯,è¿™é‡Œçš„ - g_fSpeedControlOut æ˜¯å› ä¸ºé€Ÿåº¦ç¯çš„ææ€§è·Ÿè§’åº¦ç¯ä¸ä¸€æ ·ï¼Œè§’åº¦ç¯æ˜¯è´Ÿåé¦ˆï¼Œé€Ÿåº¦ç¯æ˜¯æ­£åé¦ˆ
 	g_fRightMotorOut = g_fAngleControlOut - g_fSpeedControlOut + g_fBluetoothDirection ;
 
+	g_fLeftMotorOut -= TASK1_LEFT_OFFSET;
+	g_fRightMotorOut -= TASK1_RIGHT_OFFSET;
 
-	/*Ôö¼ÓËÀÇø³£Êı*/
+	if (SPEED_FORCE_EQUAL) {
+		if (g_s32MotorPulseDelta > 0) {
+			g_fRightMotorOut += 0.2 * g_s32MotorPulseDelta;
+		} else {
+			g_fLeftMotorOut += 0.2 * g_s32MotorPulseDelta;
+		}
+	}
+
+	/*å¢åŠ æ­»åŒºå¸¸æ•°*/
 	if((int)g_fLeftMotorOut>0)       g_fLeftMotorOut  += MOTOR_OUT_DEAD_VAL;
 	else if((int)g_fLeftMotorOut<0)  g_fLeftMotorOut  -= MOTOR_OUT_DEAD_VAL;
 	if((int)g_fRightMotorOut>0)      g_fRightMotorOut += MOTOR_OUT_DEAD_VAL;
 	else if((int)g_fRightMotorOut<0) g_fRightMotorOut -= MOTOR_OUT_DEAD_VAL;
 
-	/*Êä³ö±¥ºÍ´¦Àí£¬·ÀÖ¹³¬³öPWM·¶Î§*/			
+	/*è¾“å‡ºé¥±å’Œå¤„ç†ï¼Œé˜²æ­¢è¶…å‡ºPWMèŒƒå›´*/			
 	if((int)g_fLeftMotorOut  > MOTOR_OUT_MAX)	g_fLeftMotorOut  = MOTOR_OUT_MAX;
 	if((int)g_fLeftMotorOut  < MOTOR_OUT_MIN)	g_fLeftMotorOut  = MOTOR_OUT_MIN;
 	if((int)g_fRightMotorOut > MOTOR_OUT_MAX)	g_fRightMotorOut = MOTOR_OUT_MAX;
@@ -323,59 +346,72 @@ void MotorOutput(void)
 
 
 
-void GetMotorPulse(void)  //²É¼¯µç»úËÙ¶ÈÂö³å
+void GetMotorPulse(void)  //é‡‡é›†ç”µæœºé€Ÿåº¦è„‰å†²
 { 	
   g_s16LeftMotorPulse = TIM_GetCounter(TIM2);     
   g_s16RightMotorPulse= -TIM_GetCounter(TIM4);
   TIM2->CNT = 0;
-  TIM4->CNT = 0;   //ÇåÁã
+  TIM4->CNT = 0;   //æ¸…é›¶
 
   g_s32LeftMotorPulseSigma +=  g_s16LeftMotorPulse;
   g_s32RightMotorPulseSigma += g_s16RightMotorPulse; 
+  g_s32MotorPulseDelta = g_s16LeftMotorPulse - g_s16RightMotorPulse;
 	
+	g_iMoveCnt -= (g_s16LeftMotorPulse + g_s16RightMotorPulse) * 0.5;
 	g_iLeftTurnRoundCnt -= g_s16LeftMotorPulse;
 	g_iRightTurnRoundCnt -= g_s16RightMotorPulse;
 
+	if (g_iTurnFlag == 1 && g_iLeftTurnRoundCnt < 0 && g_iRightTurnRoundCnt > 0) {
+		// å³è½¬ç»“æŸ
+		g_iTurnFlag = 0;
+		g_iTurnFinished = 1;
+	}
+
+	if (g_iTurnFlag == -1 && g_iLeftTurnRoundCnt > 0 && g_iRightTurnRoundCnt < 0) {
+		// å·¦è½¬ç»“æŸ
+		g_iTurnFlag = 0;
+		g_iTurnFinished = 1;
+	}
 }
 
 /***************************************************************
-** ×÷¡¡  Õß: MiaowLabs Team
-** ¹Ù    Íø£ºhttp://www.miaowlabs.com
-** ÌÔ    ±¦£ºhttps://miaowlabs.taobao.com/
-** ÈÕ¡¡  ÆÚ: 2015Äê11ÔÂ29ÈÕ
-** º¯ÊıÃû³Æ: AngleCalculate
-** ¹¦ÄÜÃèÊö: ½Ç¶È»·¼ÆËãº¯Êı           
-** Êä¡¡  Èë:   
-** Êä¡¡  ³ö:   
-** ±¸    ×¢: 
-********************ß÷ÎØÊµÑéÊÒMiaowLabs°æÈ¨ËùÓĞ**************************
+** ä½œã€€  è€…: MiaowLabs Team
+** å®˜    ç½‘ï¼šhttp://www.miaowlabs.com
+** æ·˜    å®ï¼šhttps://miaowlabs.taobao.com/
+** æ—¥ã€€  æœŸ: 2015å¹´11æœˆ29æ—¥
+** å‡½æ•°åç§°: AngleCalculate
+** åŠŸèƒ½æè¿°: è§’åº¦ç¯è®¡ç®—å‡½æ•°           
+** è¾“ã€€  å…¥:   
+** è¾“ã€€  å‡º:   
+** å¤‡    æ³¨: 
+********************å–µå‘œå®éªŒå®¤MiaowLabsç‰ˆæƒæ‰€æœ‰**************************
 ***************************************************************/
 void AngleCalculate(void)
 {
-	//-------¼ÓËÙ¶È--------------------------
-	//Á¿³ÌÎª¡À2gÊ±£¬ÁéÃô¶È£º16384 LSB/g
+	//-------åŠ é€Ÿåº¦--------------------------
+	//é‡ç¨‹ä¸ºÂ±2gæ—¶ï¼Œçµæ•åº¦ï¼š16384 LSB/g
     g_fGravityAngle = atan2(g_fAccel_y/16384.0,g_fAccel_z/16384.0) * 180.0 / 3.14;
 	  g_fGravityAngle = g_fGravityAngle - g_iGravity_Offset;
 
-	//-------½ÇËÙ¶È-------------------------
-	//·¶Î§Îª2000deg/sÊ±£¬»»Ëã¹ØÏµ£º16.4 LSB/(deg/s)
-	g_fGyro_x  = g_fGyro_x / 16.4;  //¼ÆËã½ÇËÙ¶ÈÖµ			   
+	//-------è§’é€Ÿåº¦-------------------------
+	//èŒƒå›´ä¸º2000deg/sæ—¶ï¼Œæ¢ç®—å…³ç³»ï¼š16.4 LSB/(deg/s)
+	g_fGyro_x  = g_fGyro_x / 16.4;  //è®¡ç®—è§’é€Ÿåº¦å€¼			   
 	g_fGyroAngleSpeed = g_fGyro_x;	
 	
-	//-------»¥²¹ÂË²¨---------------
+	//-------äº’è¡¥æ»¤æ³¢---------------
 	g_fCarAngle = 0.98 * (g_fCarAngle + g_fGyroAngleSpeed * 0.005) + 0.02 *	g_fGravityAngle;
 }
 /***************************************************************
-** ×÷¡¡  Õß: ß÷ÎØÊµÑéÊÒMiaowLabs
-** ¹Ù    Íø£ºhttp://www.miaowlabs.com
-** ÌÔ    ±¦£ºhttps://miaowlabs.taobao.com/
-** ÈÕ¡¡  ÆÚ: 2018Äê08ÔÂ27ÈÕ
-** º¯ÊıÃû³Æ: AngleControl
-** ¹¦ÄÜÃèÊö: ½Ç¶È»·¿ØÖÆº¯Êı           
-** Êä¡¡  Èë:   
-** Êä¡¡  ³ö:   
-** ±¸    ×¢: 
-********************ß÷ÎØÊµÑéÊÒMiaowLabs°æÈ¨ËùÓĞ**************************
+** ä½œã€€  è€…: å–µå‘œå®éªŒå®¤MiaowLabs
+** å®˜    ç½‘ï¼šhttp://www.miaowlabs.com
+** æ·˜    å®ï¼šhttps://miaowlabs.taobao.com/
+** æ—¥ã€€  æœŸ: 2018å¹´08æœˆ27æ—¥
+** å‡½æ•°åç§°: AngleControl
+** åŠŸèƒ½æè¿°: è§’åº¦ç¯æ§åˆ¶å‡½æ•°           
+** è¾“ã€€  å…¥:   
+** è¾“ã€€  å‡º:   
+** å¤‡    æ³¨: 
+********************å–µå‘œå®éªŒå®¤MiaowLabsç‰ˆæƒæ‰€æœ‰**************************
 ***************************************************************/
 void AngleControl(void)	 
 {
@@ -386,14 +422,14 @@ void AngleControl(void)
 
 
 /***************************************************************
-** º¯ÊıÃû³Æ: SpeedControl
-** ¹¦ÄÜÃèÊö: ËÙ¶È»·¿ØÖÆº¯Êı
-** Êä¡¡Èë:   
-** Êä¡¡³ö:   
-** È«¾Ö±äÁ¿: 
-** ×÷¡¡Õß:   ß÷ÎØÊµÑéÊÒMiaowLabs
-** ÌÔ  ±¦£º  https://miaowlabs.taobao.com/
-** ÈÕ¡¡ÆÚ:   2014Äê08ÔÂ01ÈÕ
+** å‡½æ•°åç§°: SpeedControl
+** åŠŸèƒ½æè¿°: é€Ÿåº¦ç¯æ§åˆ¶å‡½æ•°
+** è¾“ã€€å…¥:   
+** è¾“ã€€å‡º:   
+** å…¨å±€å˜é‡: 
+** ä½œã€€è€…:   å–µå‘œå®éªŒå®¤MiaowLabs
+** æ·˜  å®ï¼š  https://miaowlabs.taobao.com/
+** æ—¥ã€€æœŸ:   2014å¹´08æœˆ01æ—¥
 ***************************************************************/
 
 void SpeedControl(void)
@@ -403,9 +439,9 @@ void SpeedControl(void)
 	
 	
 	g_fCarSpeed = (g_s32LeftMotorPulseSigma  + g_s32RightMotorPulseSigma ) * 0.5 ;
-  g_s32LeftMotorPulseSigma = g_s32RightMotorPulseSigma = 0;	  //È«¾Ö±äÁ¿ ×¢Òâ¼°Ê±ÇåÁã
+  g_s32LeftMotorPulseSigma = g_s32RightMotorPulseSigma = 0;	  //å…¨å±€å˜é‡ æ³¨æ„åŠæ—¶æ¸…é›¶
     	
-	g_fCarSpeed = 0.7 * g_fCarSpeedOld + 0.3 * g_fCarSpeed ;//µÍÍ¨ÂË²¨£¬Ê¹ËÙ¶È¸üÆ½»¬
+	g_fCarSpeed = 0.7 * g_fCarSpeedOld + 0.3 * g_fCarSpeed ;//ä½é€šæ»¤æ³¢ï¼Œä½¿é€Ÿåº¦æ›´å¹³æ»‘
 	g_fCarSpeedOld = g_fCarSpeed;
 
 	fDelta = CAR_SPEED_SET;
@@ -417,7 +453,7 @@ void SpeedControl(void)
 	g_fCarPosition += fI;
 	g_fCarPosition += g_fBluetoothSpeed;	  
 	
-//»ı·ÖÉÏÏŞÉèÏŞ
+//ç§¯åˆ†ä¸Šé™è®¾é™
 	if((s16)g_fCarPosition > CAR_POSITION_MAX)    g_fCarPosition = CAR_POSITION_MAX;
 	if((s16)g_fCarPosition < CAR_POSITION_MIN)    g_fCarPosition = CAR_POSITION_MIN;
 	
@@ -425,14 +461,14 @@ void SpeedControl(void)
   g_fSpeedControlOutNew = fP + g_fCarPosition;
 }
 /***************************************************************
-** º¯ÊıÃû³Æ: SpeedControlOutput
-** ¹¦ÄÜÃèÊö: ËÙ¶È»·¿ØÖÆÊä³öº¯Êı-·Ö¶à²½Öğ´Î±Æ½ü×îÖÕÊä³ö£¬¾¡¿ÉÄÜ½«¶ÔÖ±Á¢»·µÄ¸ÉÈÅ½µµÍ¡£
-** Êä¡¡Èë:   
-** Êä¡¡³ö:   
-** È«¾Ö±äÁ¿: 
-** ×÷¡¡Õß:   ß÷ÎØÊµÑéÊÒMiaowLabs
-** ÌÔ  ±¦£º  https://miaowlabs.taobao.com/
-** ÈÕ¡¡ÆÚ:   2014Äê08ÔÂ01ÈÕ
+** å‡½æ•°åç§°: SpeedControlOutput
+** åŠŸèƒ½æè¿°: é€Ÿåº¦ç¯æ§åˆ¶è¾“å‡ºå‡½æ•°-åˆ†å¤šæ­¥é€æ¬¡é€¼è¿‘æœ€ç»ˆè¾“å‡ºï¼Œå°½å¯èƒ½å°†å¯¹ç›´ç«‹ç¯çš„å¹²æ‰°é™ä½ã€‚
+** è¾“ã€€å…¥:   
+** è¾“ã€€å‡º:   
+** å…¨å±€å˜é‡: 
+** ä½œã€€è€…:   å–µå‘œå®éªŒå®¤MiaowLabs
+** æ·˜  å®ï¼š  https://miaowlabs.taobao.com/
+** æ—¥ã€€æœŸ:   2014å¹´08æœˆ01æ—¥
 ***************************************************************/
 void SpeedControlOutput(void)
 {
@@ -443,14 +479,14 @@ void SpeedControlOutput(void)
 
 
 /***************************************************************
-** º¯ÊıÃû³Æ: Scale
-** ¹¦ÄÜÃèÊö: Á¿³Ì¹éÒ»»¯´¦Àí
-** Êä¡¡Èë:   
-** Êä¡¡³ö:   
-** È«¾Ö±äÁ¿: 
-** ×÷¡¡Õß:   ß÷ÎØÊµÑéÊÒMiaowLabs
-** ÌÔ  ±¦£º  https://miaowlabs.taobao.com/
-** ÈÕ¡¡ÆÚ:   2014Äê08ÔÂ01ÈÕ
+** å‡½æ•°åç§°: Scale
+** åŠŸèƒ½æè¿°: é‡ç¨‹å½’ä¸€åŒ–å¤„ç†
+** è¾“ã€€å…¥:   
+** è¾“ã€€å‡º:   
+** å…¨å±€å˜é‡: 
+** ä½œã€€è€…:   å–µå‘œå®éªŒå®¤MiaowLabs
+** æ·˜  å®ï¼š  https://miaowlabs.taobao.com/
+** æ—¥ã€€æœŸ:   2014å¹´08æœˆ01æ—¥
 ***************************************************************/
 float Scale(float input, float inputMin, float inputMax, float outputMin, float outputMax) { 
   float output;
@@ -466,14 +502,14 @@ float Scale(float input, float inputMin, float inputMax, float outputMin, float 
 }
 
 /***************************************************************
-** º¯ÊıÃû³Æ: Steer
-** ¹¦ÄÜÃèÊö: Ò£¿ØËÙ¶È¼°·½Ïò´¦Àíº¯Êı
-** Êä¡¡Èë:   
-** Êä¡¡³ö:   
-** È«¾Ö±äÁ¿: 
-** ×÷¡¡Õß:   ß÷ÎØÊµÑéÊÒMiaowLabs
-** ÌÔ  ±¦£º  https://miaowlabs.taobao.com/
-** ÈÕ¡¡ÆÚ:   2014Äê08ÔÂ01ÈÕ
+** å‡½æ•°åç§°: Steer
+** åŠŸèƒ½æè¿°: é¥æ§é€Ÿåº¦åŠæ–¹å‘å¤„ç†å‡½æ•°
+** è¾“ã€€å…¥:   
+** è¾“ã€€å‡º:   
+** å…¨å±€å˜é‡: 
+** ä½œã€€è€…:   å–µå‘œå®éªŒå®¤MiaowLabs
+** æ·˜  å®ï¼š  https://miaowlabs.taobao.com/
+** æ—¥ã€€æœŸ:   2014å¹´08æœˆ01æ—¥
 ***************************************************************/
 void Steer(float direct, float speed)
 {
@@ -490,26 +526,26 @@ void Steer(float direct, float speed)
 }
 
 /***************************************************************
-** ×÷¡¡  Õß: Songyibiao
-** ¹Ù    Íø£ºhttp://www.miaowlabs.com
-** ÌÔ    ±¦£ºhttps://miaowlabs.taobao.com/
-** ÈÕ¡¡  ÆÚ: 20160415
-** º¯ÊıÃû³Æ: UltraControl
-** ¹¦ÄÜÃèÊö: ³¬Éù²¨¸úËæ/±ÜÕÏ           
-** Êä¡¡  Èë:   
-** Êä¡¡  ³ö:   
-** ±¸    ×¢: 
-********************ß÷ÎØÊµÑéÊÒMiaowLabs°æÈ¨ËùÓĞ**************************/
+** ä½œã€€  è€…: Songyibiao
+** å®˜    ç½‘ï¼šhttp://www.miaowlabs.com
+** æ·˜    å®ï¼šhttps://miaowlabs.taobao.com/
+** æ—¥ã€€  æœŸ: 20160415
+** å‡½æ•°åç§°: UltraControl
+** åŠŸèƒ½æè¿°: è¶…å£°æ³¢è·Ÿéš/é¿éšœ           
+** è¾“ã€€  å…¥:   
+** è¾“ã€€  å‡º:   
+** å¤‡    æ³¨: 
+********************å–µå‘œå®éªŒå®¤MiaowLabsç‰ˆæƒæ‰€æœ‰**************************/
 void UltraControl(int mode)
 {
 	if(mode == 0)
 	{
 		if((Distance >= 0) && (Distance<= 12))
-		{//¾àÀëĞ¡ÓÚ12cmÔòºóÍË
+		{//è·ç¦»å°äº12cmåˆ™åé€€
 			Steer(0, -4);
 		}
 		else if((Distance> 18) && (Distance<= 30))	
-		{//¾àÀë´óÓÚ18cmÇÒĞ¡ÓÚ30ÔòÇ°½ø
+		{//è·ç¦»å¤§äº18cmä¸”å°äº30åˆ™å‰è¿›
 			Steer(0, 4);
 		}
 		else
@@ -518,29 +554,44 @@ void UltraControl(int mode)
 	else if(mode == 1)
 	{
 		if((Distance >= 0) && (Distance<= 20))
-		{//ÓÒ×ª750¸öÂö³å¼ÆÊı£¬×ªÍä½Ç¶ÈÔ¼Îª90¶È
-			Steer(5, 0);
-			g_iLeftTurnRoundCnt = 750;
-			g_iRightTurnRoundCnt = -750;
-		}
-		if((g_iLeftTurnRoundCnt < 0)&&(g_iRightTurnRoundCnt > 0))
 		{
-			Steer(0, 4);
+			SPEED_FORCE_EQUAL = 0;
+			if (g_iTurnOrder[g_iOrderPosition] == 1) {
+				// å¼€å§‹å³è½¬
+				Steer(5, 0);
+				g_iLeftTurnRoundCnt = TURN_CNT;
+				g_iRightTurnRoundCnt = -TURN_CNT;
+				g_iTurnFlag = 1;
+			} else {
+				// å¼€å§‹å·¦è½¬
+				Steer(-5, 0);
+				g_iLeftTurnRoundCnt = -TURN_CNT;
+				g_iRightTurnRoundCnt = TURN_CNT;
+				g_iTurnFlag = -1;
+			}
+		}
+		
+		if (g_iTurnFinished) {
+			// è½¬å¼¯å®Œæˆ
+			SPEED_FORCE_EQUAL = 1;
+			Steer(0, 3);
+			g_iTurnFinished = 0;
+			g_iOrderPosition = (g_iOrderPosition + 1) % 4;
 		}
 	}
 }
 
 /***************************************************************
-** ×÷¡¡  Õß: MiaowLabs Team
-** ¹Ù    Íø£ºhttp://www.miaowlabs.com
-** ÌÔ    ±¦£ºhttps://miaowlabs.taobao.com/
-** ÈÕ¡¡  ÆÚ: 20160415
-** º¯ÊıÃû³Æ: TailingControl
-** ¹¦ÄÜÃèÊö: ºìÍâÑ°¼£           
-** Êä¡¡  Èë:   
-** Êä¡¡  ³ö:   
-** ±¸    ×¢: 
-********************ß÷ÎØÊµÑéÊÒMiaowLabs°æÈ¨ËùÓĞ**************************
+** ä½œã€€  è€…: MiaowLabs Team
+** å®˜    ç½‘ï¼šhttp://www.miaowlabs.com
+** æ·˜    å®ï¼šhttps://miaowlabs.taobao.com/
+** æ—¥ã€€  æœŸ: 20160415
+** å‡½æ•°åç§°: TailingControl
+** åŠŸèƒ½æè¿°: çº¢å¤–å¯»è¿¹           
+** è¾“ã€€  å…¥:   
+** è¾“ã€€  å‡º:   
+** å¤‡    æ³¨: 
+********************å–µå‘œå®éªŒå®¤MiaowLabsç‰ˆæƒæ‰€æœ‰**************************
 ***************************************************************/
 void TailingControl(void)
 {
@@ -574,8 +625,72 @@ void TailingControl(void)
 	Steer(direct, speed);
 
 #if INFRARE_DEBUG_EN > 0
-	sprintf(buff, "Steer:%d, Speed:%d\r\n",(int)direct,  (int)speed);
-	DebugOutStr(buff);
+	//sprintf(buff, "Steer:%d, Speed:%d\r\n",(int)direct,  (int)speed);
+	//DebugOutStr(buff);
 #endif
 }
 
+/**
+ * ä»»åŠ¡1
+ */
+void Task1(unsigned short* SoftTimer)
+{
+	char buff[32];
+	int WAIT = 3000;
+	int MAXF = 400, MINF = 300;
+	int MOVE_CNT = 6000, ROUND_CNT = 3000;
+	memset(buff, 0, sizeof(buff));
+
+	sprintf(buff, "wait\n\0");
+	ShowStr(buff);
+	SoftTimer[3] = WAIT;
+	while (SoftTimer[3] > 0) {}
+	sprintf(buff, "forward\n\0");
+	ShowStr(buff);
+	g_iMoveCnt = MOVE_CNT;
+	Steer(0, 3);
+	while (g_iMoveCnt > 0) {}
+	Steer(0, 0);
+	
+	sprintf(buff, "wait\n\0");
+	ShowStr(buff);
+	SoftTimer[3] = WAIT;
+	while (SoftTimer[3] > 0) {}
+	sprintf(buff, "backward\n\0");
+	ShowStr(buff);
+	g_iMoveCnt = -MOVE_CNT;
+	Steer(0, -3);
+	while (g_iMoveCnt < 0) {}
+	Steer(0, 0);
+
+	sprintf(buff, "wait\n\0");
+	ShowStr(buff);
+	SPEED_FORCE_EQUAL = 0;
+	SoftTimer[3] = 2000;
+	while (SoftTimer[3] > 0) {}
+	sprintf(buff, "left\n\0");
+	ShowStr(buff);
+	// å¼€å§‹å·¦è½¬
+	TASK1_LEFT_OFFSET = MINF;
+	TASK1_RIGHT_OFFSET = MAXF;
+	g_iRightTurnRoundCnt = ROUND_CNT;
+	while (g_iRightTurnRoundCnt > 0) {}
+	TASK1_LEFT_OFFSET = 0;
+	TASK1_RIGHT_OFFSET = 0;
+	Steer(0, 0);
+
+	sprintf(buff, "wait\n\0");
+	ShowStr(buff);
+	SoftTimer[3] = 2000;
+	while (SoftTimer[3] > 0) {}
+	sprintf(buff, "right\n\0");
+	ShowStr(buff);
+	// å¼€å§‹å³è½¬
+	TASK1_LEFT_OFFSET = MAXF;
+	TASK1_RIGHT_OFFSET = MINF;
+	g_iLeftTurnRoundCnt = ROUND_CNT;
+	while (g_iLeftTurnRoundCnt > 0) {}
+	TASK1_LEFT_OFFSET = 0;
+	TASK1_RIGHT_OFFSET = 0;
+	Steer(0, 0);
+}
