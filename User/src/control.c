@@ -12,6 +12,7 @@
 ***********************************************************************/
 #include "math.h"
 #include "stdio.h"
+#include "string.h"
 #include "control.h"
 #include "debug.H"
 #include "MPU6050.H"
@@ -19,7 +20,7 @@
 #include "bsp.h"
 #include "ultrasonic.h"
 #include "infrare.h"
-
+#include "display.h"
 
 unsigned char g_u8MainEventCount;
 unsigned char g_u8SpeedControlCount;
@@ -39,6 +40,9 @@ float g_fSpeedControlOutNew;
 float g_fAngleControlOut;
 float g_fLeftMotorOut;
 float g_fRightMotorOut;
+
+/* 任务1专用 */
+float TASK1_LEFT_OFFSET, TASK1_RIGHT_OFFSET;
 
 /******速度控制参数******/
 
@@ -72,6 +76,8 @@ float g_fGravityAngle;			//
 
 // 直行计数
 int g_iMoveCnt = 0;
+
+int SPEED_FORCE_EQUAL = 1;
 
 // 转弯计数
 int g_iLeftTurnRoundCnt = 0;
@@ -309,6 +315,9 @@ void MotorOutput(void)
 {
 	g_fLeftMotorOut  = g_fAngleControlOut - g_fSpeedControlOut - g_fBluetoothDirection ;	//这里的电机输出等于角度环控制量 + 速度环外环,这里的 - g_fSpeedControlOut 是因为速度环的极性跟角度环不一样，角度环是负反馈，速度环是正反馈
 	g_fRightMotorOut = g_fAngleControlOut - g_fSpeedControlOut + g_fBluetoothDirection ;
+
+	g_fLeftMotorOut -= TASK1_LEFT_OFFSET;
+	g_fRightMotorOut -= TASK1_RIGHT_OFFSET;
 
 	if (SPEED_FORCE_EQUAL) {
 		if (g_s32MotorPulseDelta > 0) {
@@ -555,6 +564,7 @@ void UltraControl(int mode)
 
 		if((Distance >= 0) && (Distance<= 20))
 		{
+			SPEED_FORCE_EQUAL = 0;
 			if (g_iTurnOrder[g_iOrderPosition] == 1) {
 				// 开始右转
 				Steer(5, 0);
@@ -568,93 +578,15 @@ void UltraControl(int mode)
 				g_iRightTurnRoundCnt = TURN_CNT;
 				g_iTurnFlag = -1;
 			}
-
-			/*if(g_iDestinationRelatedDirection == -1)		// 当前相对终点正在向左走，并且即将撞墙
-			{
-				//右转750个脉冲计数，转弯角度约为90度
-				Steer(5, 0);
-				g_iLeftTurnRoundCnt = TURN_CNT;
-				g_iRightTurnRoundCnt = -TURN_CNT;
-			}
-			else if(g_iDestinationRelatedDirection == 1)	// 当前相对终点正在向右走，并且即将撞墙
-			{
-				// 左转750个脉冲计数，转弯角度约为90度
-				Steer(-5, 0);
-				g_iLeftTurnRoundCnt = -TURN_CNT;
-				g_iRightTurnRoundCnt = TURN_CNT;
-			}
-			else if(g_iDestinationRelatedDirection == 0)	// 当前相对终点正在直行
-			{
-				if (g_iWallRelatedPosition == 0 || g_iWallRelatedPosition == -1)
-				{
-					//右转750个脉冲计数，转弯角度约为90度(默认也是右转)
-					Steer(5, 0);
-					g_iLeftTurnRoundCnt = TURN_CNT;
-					g_iRightTurnRoundCnt = -TURN_CNT;
-				}
-				else
-				{
-					// 左转750个脉冲计数，转弯角度约为90度
-					Steer(-5, 0);
-					g_iLeftTurnRoundCnt = -TURN_CNT;
-					g_iRightTurnRoundCnt = TURN_CNT;
-				}
-			}*/
 		}
 		
 		if (g_iTurnFinished) {
-			Steer(0, 2);
+			// 转弯完成
+			SPEED_FORCE_EQUAL = 1;
+			Steer(0, 3);
 			g_iTurnFinished = 0;
 			g_iOrderPosition = (g_iOrderPosition + 1) % 4;
 		}
-
-		/*
-		// 转弯完成
-		// 向左走通过右转恢复成直走 靠墙的左边
-		if(g_iLeftTurnRoundCnt < 0 && g_iRightTurnRoundCnt > 0 && g_iDestinationRelatedDirection == -1 )
-		{
-			// #if INFRARE_DEBUG_EN > 0
-			// 	sprintf(buff, "44444\n");
-			// 	DebugOutStr(buff);
-			// 	#endif
-			g_iDestinationRelatedDirection = 0;
-			g_iWallRelatedPosition = -1;
-			Steer(0, 2);
-		}
-		// 向右走通过左转恢复成直走 靠墙的右边
-		else if(g_iLeftTurnRoundCnt > 0 && g_iRightTurnRoundCnt < 0 && g_iDestinationRelatedDirection == 1)
-		{
-			// #if INFRARE_DEBUG_EN > 0
-			// 	sprintf(buff, "44444\n");
-			// 	DebugOutStr(buff);
-			// 	#endif
-			g_iDestinationRelatedDirection = 0;
-			g_iWallRelatedPosition = 1;
-			Steer(0, 2);
-		}
-		// 直走通过右转变为向右走
-		else if (g_iLeftTurnRoundCnt < 0 && g_iRightTurnRoundCnt > 0 && g_iDestinationRelatedDirection == 0 && (g_iWallRelatedPosition == 0 || g_iWallRelatedPosition == -1))
-		{
-			// #if INFRARE_DEBUG_EN > 0
-			// sprintf(buff, "44444\n");
-			// DebugOutStr(buff);
-			// #endif
-			g_iDestinationRelatedDirection = 1;
-			g_iWallRelatedPosition = 0;
-			Steer(0, 2);
-		}
-		// 直走通过左转变为向左走
-		else if (g_iLeftTurnRoundCnt > 0 && g_iRightTurnRoundCnt < 0 && g_iDestinationRelatedDirection == 0 && g_iWallRelatedPosition == 1)
-		{
-			// #if INFRARE_DEBUG_EN > 0
-			// sprintf(buff, "44444\n");
-			// DebugOutStr(buff);
-			// #endif
-			g_iDestinationRelatedDirection = -1;
-			g_iWallRelatedPosition = 0;
-			Steer(0, 2);
-		}
-		*/
 	}
 }
 
@@ -707,3 +639,67 @@ void TailingControl(void)
 #endif
 }
 
+/**
+ * 任务1
+ */
+void Task1(unsigned short* SoftTimer)
+{
+	char buff[32];
+	int WAIT = 3000;
+	int MAXF = 400, MINF = 300;
+	int MOVE_CNT = 6000, ROUND_CNT = 3000;
+	memset(buff, 0, sizeof(buff));
+
+	sprintf(buff, "wait\n\0");
+	ShowStr(buff);
+	SoftTimer[3] = WAIT;
+	while (SoftTimer[3] > 0) {}
+	sprintf(buff, "forward\n\0");
+	ShowStr(buff);
+	g_iMoveCnt = MOVE_CNT;
+	Steer(0, 3);
+	while (g_iMoveCnt > 0) {}
+	Steer(0, 0);
+	
+	sprintf(buff, "wait\n\0");
+	ShowStr(buff);
+	SoftTimer[3] = WAIT;
+	while (SoftTimer[3] > 0) {}
+	sprintf(buff, "backward\n\0");
+	ShowStr(buff);
+	g_iMoveCnt = -MOVE_CNT;
+	Steer(0, -3);
+	while (g_iMoveCnt < 0) {}
+	Steer(0, 0);
+
+	sprintf(buff, "wait\n\0");
+	ShowStr(buff);
+	SPEED_FORCE_EQUAL = 0;
+	SoftTimer[3] = 2000;
+	while (SoftTimer[3] > 0) {}
+	sprintf(buff, "left\n\0");
+	ShowStr(buff);
+	// 开始左转
+	TASK1_LEFT_OFFSET = MINF;
+	TASK1_RIGHT_OFFSET = MAXF;
+	g_iRightTurnRoundCnt = ROUND_CNT;
+	while (g_iRightTurnRoundCnt > 0) {}
+	TASK1_LEFT_OFFSET = 0;
+	TASK1_RIGHT_OFFSET = 0;
+	Steer(0, 0);
+
+	sprintf(buff, "wait\n\0");
+	ShowStr(buff);
+	SoftTimer[3] = 2000;
+	while (SoftTimer[3] > 0) {}
+	sprintf(buff, "right\n\0");
+	ShowStr(buff);
+	// 开始右转
+	TASK1_LEFT_OFFSET = MAXF;
+	TASK1_RIGHT_OFFSET = MINF;
+	g_iLeftTurnRoundCnt = ROUND_CNT;
+	while (g_iLeftTurnRoundCnt > 0) {}
+	TASK1_LEFT_OFFSET = 0;
+	TASK1_RIGHT_OFFSET = 0;
+	Steer(0, 0);
+}

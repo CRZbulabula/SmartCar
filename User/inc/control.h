@@ -30,7 +30,6 @@ typedef struct _PID_t{
 #define MOTOR_OUT_MAX           999	   //ռ�ձ������ֵ
 #define MOTOR_OUT_MIN         (-999)   //ռ�ձȸ����ֵ
 
-#define SPEED_FORCE_EQUAL 0
 #define TURN_CNT 300
 
 extern short  g_s16LeftMotorPulse;
@@ -57,6 +56,8 @@ extern unsigned char g_u8DirectionControlPeriod;
 extern unsigned char g_u8DirectionControlCount;
 
 extern int g_iMoveCnt;
+extern float g_iCarSpeedSet;
+
 extern int g_iOrderPosition;
 extern int g_iLeftTurnRoundCnt, g_iRightTurnRoundCnt;
 extern int g_iDestinationRelatedDirection, g_iWallRelatedPosition;
@@ -76,6 +77,8 @@ void Steer(float direct, float speed);
 void UltraControl(int mode);
 
 void TailingControl(void);
+
+void Task1(unsigned short* SoftTimer);
 
 
 #endif

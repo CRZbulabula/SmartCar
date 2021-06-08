@@ -65,37 +65,15 @@ int main(void)
 	
 	ShowHomePageInit();
  
-	SoftTimer[3] = 2000;
-	while (SoftTimer[3] > 0) {}
-	Steer(0, 2);
+	//SoftTimer[3] = 2000;
+	//while (SoftTimer[3] > 0) {}
+	//Steer(0, 3);
 
 	while (1)
 	{
-		
-		/*SoftTimer[3] = 2000;
-		while (SoftTimer[3] > 0) {}
-		sprintf(buff, "forward\n\0");
-		DebugOutStr(buff);
-		g_iMoveCnt = 6000;
-		Steer(0, 2);
-		while (g_iMoveCnt > 0) {}
-		Steer(0, 0);
-		SoftTimer[3] = 2000;
-		while (SoftTimer[3] > 0) {}
-		sprintf(buff, "backward\n\0");
-		DebugOutStr(buff);
-		g_iMoveCnt = -6000;
-		Steer(0, -2);
-		while (g_iMoveCnt > 0) {
-			SoftTimer[4] = 500;
-			while (SoftTimer[4] > 0) {}
-				
-		}
-		Steer(0, 0);
-		SoftTimer[3] = 2000;
-		while (SoftTimer[3] > 0) {}*/
-		
-		SecTask();			//秒级任务
+		Task1(SoftTimer);		
+			
+		/*SecTask();			//秒级任务
 
 		if(SoftTimer[1] == 0)
 		{// 每隔20ms 执行一次
@@ -133,7 +111,7 @@ int main(void)
 			//sprintf(buff, "direction: %d, position: %d cnt: %d %d\n\0", 
 			//g_iDestinationRelatedDirection, g_iWallRelatedPosition, g_iLeftTurnRoundCnt, g_iRightTurnRoundCnt);
 			ShowStr(buff);
-		}
+		}*/
 	}
 }
 
