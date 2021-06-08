@@ -64,6 +64,10 @@ int main(void)
 		g_iGravity_Offset = 1; //若果检测到悬挂红外模块，则更改偏移值。
 	
 	ShowHomePageInit();
+	
+	SoftTimer[3] = 2000;
+	while(SoftTimer[3]) {}
+	Steer(0, 2);
  
 	//SoftTimer[3] = 2000;
 	//while (SoftTimer[3] > 0) {}
@@ -82,7 +86,7 @@ int main(void)
 			DebugService();			
 			//Parse(Uart3Buffer);
 		}
-  	
+   	
 		if(SoftTimer[2] == 0)
 		{
 			SoftTimer[2] = 100;	// todo: to be modified
