@@ -68,7 +68,7 @@ int main(void)
 	//SoftTimer[3] = 2000;
 	//while(SoftTimer[3]) {}
  
-	//Steer(0, 3);
+	//Steer(0, 5);
 	SPEED_FORCE_EQUAL = 0;
 	while (1)
 	{
@@ -116,13 +116,13 @@ int main(void)
 		}
 		
 
-		/*if (SoftTimer[3] == 0) {
-			SoftTimer[3] = 500;
-			sprintf(buff, "order: %d\n", g_iOrderPosition);
-			//sprintf(buff, "direction: %d, position: %d cnt: %d %d\n\0", 
-			//g_iDestinationRelatedDirection, g_iWallRelatedPosition, g_iLeftTurnRoundCnt, g_iRightTurnRoundCnt);
+		if (SoftTimer[4] == 0) {
+			SoftTimer[4] = 50;
+			//sprintf(buff, "order: %d\n", g_iOrderPosition);
+			sprintf(buff, "cnt: %d %d delta: %d finish: %d\n\0", 
+			g_iLeftTurnRoundCnt, g_iRightTurnRoundCnt, TURN_DELTA * g_iTurnRoundSum, g_iTurnFinished);
 			ShowStr(buff);
-		}*/
+		}
 	}
 }
 

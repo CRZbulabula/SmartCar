@@ -82,6 +82,7 @@ int g_iMoveCnt = 0;
 int SPEED_FORCE_EQUAL = 1;
 
 // �?�?计数
+int g_iTurnRoundSum = 0;
 int g_iLeftTurnRoundCnt = 0;
 int g_iRightTurnRoundCnt = 0;
 
@@ -321,7 +322,7 @@ void MotorOutput(void)
 {
 	g_fLeftMotorOut  = g_fAngleControlOut - g_fSpeedControlOut - g_fBluetoothDirection ;	//这里的电机输出等于�?�度�?控制�? + 速度�?外环,这里�? - g_fSpeedControlOut �?因为速度�?的极性跟角度�?不一样，角度�?�?负反馈，速度�?�?正反�?
 	g_fRightMotorOut = g_fAngleControlOut - g_fSpeedControlOut + g_fBluetoothDirection ;
-
+	
 	//g_fLeftMotorOut  = g_fAngleControlOut - g_fSpeedControlOut - g_fBluetoothLeftDirection;
 	//g_fRightMotorOut = g_fAngleControlOut - g_fSpeedControlOut - g_fBluetoothRightDirection;
 
@@ -366,15 +367,28 @@ void GetMotorPulse(void)  //采集电机速度脉冲
 	
 	g_iMoveCnt -= (g_s16LeftMotorPulse + g_s16RightMotorPulse) * 0.5;
 	
-	if (g_iTurnFlag == 1) {
-		g_iRightTurnRoundCnt -= fabs(g_s32MotorPulseDelta);
-		if (g_iRightTurnRoundCnt < 0) {
-			g_iTurnFlag = 0;
-			g_iTurnFinished = 1;
+	g_iLeftTurnRoundCnt += g_s16LeftMotorPulse;
+	g_iRightTurnRoundCnt += g_s16RightMotorPulse;
+
+	if (g_iTurnFlag) {
+		int OK_FLAG = 0;
+		if (g_iTurnRoundSum == 1) {
+			if (g_iLeftTurnRoundCnt - g_iRightTurnRoundCnt > TURN_DELTA) {
+				OK_FLAG = 1;
+			}
 		}
-	} else if (g_iTurnFlag == -1) {
-		g_iLeftTurnRoundCnt -= fabs(g_s32MotorPulseDelta);
-		if (g_iLeftTurnRoundCnt < 0) {
+		if (g_iTurnRoundSum == 0) {
+			if (fabs(g_iLeftTurnRoundCnt - g_iRightTurnRoundCnt) < 250) {
+				OK_FLAG = 1;
+			}
+		}
+		if (g_iTurnRoundSum == -1) {
+			if (g_iRightTurnRoundCnt - g_iLeftTurnRoundCnt > TURN_DELTA) {
+				OK_FLAG = 1;
+			}
+		}
+
+		if (OK_FLAG) {
 			g_iTurnFlag = 0;
 			g_iTurnFinished = 1;
 		}
@@ -578,27 +592,31 @@ void UltraControl(int mode)
 	}
 	else if(mode == 1)
 	{
-		if((Distance >= 0) && (Distance <= 20))
+		if((Distance >= 0) && (Distance <= 20) && !g_iTurnFlag)
 		{
 			SPEED_FORCE_EQUAL = 0;
 			if (g_iTurnOrder[g_iOrderPosition] == 1) {
 				// 开始右�?
-				Steer(5, 0);
-				g_iRightTurnRoundCnt = RIGHT_TURN_CNT;
+				Steer(7, 0);
+				/*g_iRightTurnRoundCnt = RIGHT_TURN_CNT;
+				if (g_iStateReadyChange == 0) {
+					g_iRightTurnRoundCnt -= 100;
+				}*/
 				g_iTurnFlag = 1;
 			} else {
 				// 开始左�?
-				Steer(-5, 0);
-				g_iLeftTurnRoundCnt = LEFT_TURN_CNT;
+				Steer(-7, 0);
+				//g_iLeftTurnRoundCnt = LEFT_TURN_CNT;
 				g_iTurnFlag = -1;
 			}
+			g_iTurnRoundSum += g_iTurnFlag;
 		}
 		
 		if (g_iTurnFinished) {
 			// �?�?完成
 			SPEED_FORCE_EQUAL = 1;
 			//g_iStateReadyChange = 1;
-			Steer(0, 3);
+			Steer(0, 5);
 			g_iTurnFinished = 0;
 			g_iOrderPosition = (g_iOrderPosition + 1) % 4;
 		}
