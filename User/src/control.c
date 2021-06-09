@@ -21,6 +21,7 @@
 #include "ultrasonic.h"
 #include "infrare.h"
 #include "display.h"
+#include "manage.h"
 
 unsigned char g_u8MainEventCount;
 unsigned char g_u8SpeedControlCount;
@@ -90,7 +91,7 @@ int g_iTurnOrder[4] = {1, 1, -1, -1};
 int g_iDestinationRelatedDirection = 0;	// 相对于终点的方向：-1表示当前正在向左走  0表示当前正在直行    1表示当前正在向右走
 int g_iWallRelatedPosition = 0;			// 相对于墙的位置：  -1表示在左边墙向前走  1表示在右边墙向前走  0表示其他情况
 
-int g_iCarState = 1; // 车的状态 0表示task1 1表示红外 2表示超声
+int g_iStateReadyChange = 0;
 
 static int AbnormalSpinFlag = 0;
 /***************************************************************
@@ -324,9 +325,9 @@ void MotorOutput(void)
 
 	if (SPEED_FORCE_EQUAL) {
 		if (g_s32MotorPulseDelta > 0) {
-			g_fRightMotorOut += 0.2 * g_s32MotorPulseDelta;
+			g_fRightMotorOut += 0.25 * g_s32MotorPulseDelta;
 		} else {
-			g_fLeftMotorOut += 0.2 * g_s32MotorPulseDelta;
+			g_fLeftMotorOut += 0.25 * g_s32MotorPulseDelta;
 		}
 	}
 
@@ -575,6 +576,7 @@ void UltraControl(int mode)
 		if (g_iTurnFinished) {
 			// 转弯完成
 			SPEED_FORCE_EQUAL = 1;
+			g_iStateReadyChange = 1;
 			Steer(0, 3);
 			g_iTurnFinished = 0;
 			g_iOrderPosition = (g_iOrderPosition + 1) % 4;
@@ -605,7 +607,9 @@ void TailingControl(void)
 	int la,ra,lb,rb;
 	la = ra = lb = rb = 0;
 	if (!IsInfrareOK()) {
-		g_iCarState = 2;
+		g_CarRunningMode = ULTRA_AVOID_MODE;
+		Steer(0, 3);
+		return;
 	}
 	result = InfraredDetect();
 	

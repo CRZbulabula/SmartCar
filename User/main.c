@@ -74,13 +74,13 @@ int main(void)
 	{
 		// Task1(SoftTimer);
 		
-		if(g_iCarState == 1 && SoftTimer[2] == 0)
+		if(g_CarRunningMode == INFRARED_TRACE_MODE && SoftTimer[2] == 0)
 		{
 			SoftTimer[2] = 10;
 			TailingControl();
 		}
 		
-		//SecTask();			//秒级任务
+		SecTask();			//秒级任务
 
 		if(SoftTimer[1] == 0)
 		{// 每隔20ms 执行一次
@@ -95,21 +95,24 @@ int main(void)
 			SoftTimer[3] = 100;	// todo: to be modified
 			
 			// ShowHomePage();
-	
 			Read_Distane();
 
 			if(g_CarRunningMode == ULTRA_FOLLOW_MODE){
 				if(IsUltraOK())UltraControl(0);	//超声波跟随模式
 	 		}
-			//if(g_CarRunningMode == ULTRA_AVOID_MODE){
-			if(g_iCarState == 2)
+			if(g_CarRunningMode == ULTRA_AVOID_MODE)
 			{
 				UltraControl(1);	//超声波避障模式
+				if (!IsUltraOK() && g_iStateReadyChange) {
+					g_CarRunningMode = 5;
+				}
 			}
-	 		//}
-			else if(g_CarRunningMode == INFRARED_TRACE_MODE){
-				TailingControl();
-			}
+		}
+		
+		if (g_CarRunningMode == 5 && SoftTimer[2] == 0) {
+			SoftTimer[2] = 1000;
+			sprintf(buff, "Stop!\r\n");
+			ShowStr(buff);
 		}
 		
 
