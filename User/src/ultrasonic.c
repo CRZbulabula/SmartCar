@@ -147,7 +147,7 @@ void UltraSelfCheck(void)
 }
 
 int IsUltraOK(void)
-{
+{	
 	return UltraError;
 }
 

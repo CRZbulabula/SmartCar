@@ -83,6 +83,7 @@ int SPEED_FORCE_EQUAL = 1;
 
 // �?�?计数
 int g_iTurnRoundSum = 0;
+int g_iBeginTurnDelta;
 int g_iLeftTurnRoundCnt = 0;
 int g_iRightTurnRoundCnt = 0;
 
@@ -330,10 +331,15 @@ void MotorOutput(void)
 	g_fRightMotorOut -= TASK1_RIGHT_OFFSET;
 
 	if (SPEED_FORCE_EQUAL) {
-		if (g_s32MotorPulseDelta > 0) {
+		/*if (g_s32MotorPulseDelta > 0) {
 			g_fRightMotorOut += 0.25 * g_s32MotorPulseDelta;
 		} else {
 			g_fLeftMotorOut += 0.25 * g_s32MotorPulseDelta;
+		}*/
+		if (g_iLeftTurnRoundCnt > g_iRightTurnRoundCnt) {
+			g_fRightMotorOut += 0.5 * g_s32MotorPulseDelta;
+		} else {
+			g_fLeftMotorOut += 0.8 * g_s32MotorPulseDelta;
 		}
 	}
 
@@ -378,7 +384,7 @@ void GetMotorPulse(void)  //采集电机速度脉冲
 			}
 		}
 		if (g_iTurnRoundSum == 0) {
-			if (fabs(g_iLeftTurnRoundCnt - g_iRightTurnRoundCnt) < 250) {
+			if (fabs(g_iLeftTurnRoundCnt - g_iRightTurnRoundCnt) < 300) {
 				OK_FLAG = 1;
 			}
 		}
@@ -592,7 +598,7 @@ void UltraControl(int mode)
 	}
 	else if(mode == 1)
 	{
-		if((Distance >= 0) && (Distance <= 20) && !g_iTurnFlag)
+		if((Distance >= 0) && (Distance <= 23) && !g_iTurnFlag)
 		{
 			SPEED_FORCE_EQUAL = 0;
 			if (g_iTurnOrder[g_iOrderPosition] == 1) {
@@ -616,7 +622,7 @@ void UltraControl(int mode)
 			// �?�?完成
 			SPEED_FORCE_EQUAL = 1;
 			//g_iStateReadyChange = 1;
-			Steer(0, 5);
+			Steer(0, 8);
 			g_iTurnFinished = 0;
 			g_iOrderPosition = (g_iOrderPosition + 1) % 4;
 		}
@@ -647,6 +653,8 @@ void TailingControl(void)
 	la = ra = lb = rb = 0;
 	if (!IsInfrareOK()) {
 		g_CarRunningMode = ULTRA_AVOID_MODE;
+		g_iLeftTurnRoundCnt = g_iRightTurnRoundCnt = 0;
+		g_iBeginTurnDelta = fabs(g_iLeftTurnRoundCnt - g_iRightTurnRoundCnt);
 		Steer(0, 3);
 		return;
 	}

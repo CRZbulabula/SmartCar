@@ -92,7 +92,7 @@ int main(void)
    	
 		if(SoftTimer[3] == 0)
 		{
-			SoftTimer[3] = 100;	// todo: to be modified
+			SoftTimer[3] = 80;	// todo: to be modified
 			
 			// ShowHomePage();
 			Read_Distane();
@@ -103,7 +103,7 @@ int main(void)
 			if(g_CarRunningMode == ULTRA_AVOID_MODE)
 			{
 				UltraControl(1);	//³¬Éù²¨±ÜÕÏÄ£Ê½
-				if (!IsUltraOK() && g_iStateReadyChange) {
+				if (!IsInfrareOK() && g_iStateReadyChange) {
 					g_CarRunningMode = 5;
 				}
 			}
@@ -119,8 +119,8 @@ int main(void)
 		if (SoftTimer[4] == 0) {
 			SoftTimer[4] = 50;
 			//sprintf(buff, "order: %d\n", g_iOrderPosition);
-			sprintf(buff, "cnt: %d %d delta: %d finish: %d\n\0", 
-			g_iLeftTurnRoundCnt, g_iRightTurnRoundCnt, TURN_DELTA * g_iTurnRoundSum, g_iTurnFinished);
+			sprintf(buff, "cnt: %d %d delta: %d begin: %d\n\0", 
+			g_iLeftTurnRoundCnt, g_iRightTurnRoundCnt, TURN_DELTA * g_iTurnRoundSum, g_iBeginTurnDelta);
 			ShowStr(buff);
 		}
 	}

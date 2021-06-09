@@ -34,7 +34,7 @@ typedef struct _PID_t{
 #define RIGHT_TURN_CNT 1100
 #define TURN_DELTA 1520
 
-extern int g_iTurnRoundSum, g_iTurnFinished;
+extern int g_iTurnRoundSum, g_iTurnFinished, g_iBeginTurnDelta;
 
 extern short  g_s16LeftMotorPulse;
 extern short  g_s16RightMotorPulse;
