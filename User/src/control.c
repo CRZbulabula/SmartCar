@@ -89,12 +89,13 @@ int g_iRightTurnRoundCnt = 0;
 
 int g_iTurnFlag = 0, g_iTurnFinished = 0;
 int g_iOrderPosition = 1;
-int g_iTurnOrder[4] = {1, 1, -1, -1};
+int g_iTurnOrder[4] = {-1, -1, 1, 1};
 
 int g_iDestinationRelatedDirection = 0;	// 相�?�于终点的方向：-1表示当前正在向左�?  0表示当前正在直�??    1表示当前正在向右�?
 int g_iWallRelatedPosition = 0;			// 相�?�于墙的位置�?  -1表示在左边�?�向前走  1表示在右边�?�向前走  0表示其他情况
 
 int g_iStateReadyChange = 0;
+int g_iFinishFlag = 0;
 
 static int AbnormalSpinFlag = 0;
 /***************************************************************
@@ -621,7 +622,7 @@ void UltraControl(int mode)
 		if (g_iTurnFinished) {
 			// �?�?完成
 			SPEED_FORCE_EQUAL = 1;
-			//g_iStateReadyChange = 1;
+			g_iStateReadyChange = 1;
 			Steer(0, 8);
 			g_iTurnFinished = 0;
 			g_iOrderPosition = (g_iOrderPosition + 1) % 4;
@@ -677,7 +678,7 @@ void TailingControl(void)
 		rb = 1;
 	}
 
-	if (direct == 0) speed = 2;
+	if (direct == 0) speed = 3;
 	else speed = 1;
 
 	Steer(direct, speed);

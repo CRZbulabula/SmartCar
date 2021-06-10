@@ -68,6 +68,7 @@ extern int g_iLeftTurnRoundCnt, g_iRightTurnRoundCnt;
 extern int g_iDestinationRelatedDirection, g_iWallRelatedPosition;
 
 extern int g_iStateReadyChange;
+extern int g_iFinishFlag;
 
 void CarUpstandInit(void);
 void MotorManage(void);

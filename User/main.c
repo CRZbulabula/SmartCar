@@ -103,24 +103,32 @@ int main(void)
 			if(g_CarRunningMode == ULTRA_AVOID_MODE)
 			{
 				UltraControl(1);	//³¬Éù²¨±ÜÕÏÄ£Ê½
-				if (!IsInfrareOK() && g_iStateReadyChange) {
-					g_CarRunningMode = 5;
+				if (!IsInfrareOK()) {
+					g_iFinishFlag += 1;
+				} else {
+					g_iFinishFlag = 0;
 				}
+				/*
+				if (g_iFinishFlag >= 5 && g_iStateReadyChange) {
+					g_CarRunningMode = 5;
+					Steer(0, 0);
+				}*/
 			}
 		}
 		
 		if (g_CarRunningMode == 5 && SoftTimer[2] == 0) {
 			SoftTimer[2] = 1000;
 			sprintf(buff, "Stop!\r\n");
-			ShowStr(buff);
+			//ShowStr(buff);
 		}
 		
 
-		if (SoftTimer[4] == 0) {
+		if (SoftTimer[4] == 0 && g_CarRunningMode != 5) {
 			SoftTimer[4] = 50;
 			//sprintf(buff, "order: %d\n", g_iOrderPosition);
 			sprintf(buff, "cnt: %d %d delta: %d begin: %d\n\0", 
 			g_iLeftTurnRoundCnt, g_iRightTurnRoundCnt, TURN_DELTA * g_iTurnRoundSum, g_iBeginTurnDelta);
+			sprintf(buff, "finish:%d", g_iFinishFlag);
 			ShowStr(buff);
 		}
 	}
